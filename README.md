@@ -83,18 +83,18 @@ env-from-example
 
 **Options:**
 
-| Flag | Description |
-|------|-------------|
-| `-y, --yes` | Non-interactive: accept existing values or defaults without prompting |
-| `-f, --force` | Force re-run even if `.env` is already up-to-date |
-| `-e, --env <name>` | Target environment (e.g., `local`, `test`, `production`) |
-| `--cwd <path>` | Project root directory (default: current working directory) |
-| `--init [source]` | Create `.env.example` from an existing env file or from scratch |
-| `--polish` | Polish `.env.example`: add descriptions, types, defaults (`-y` for non-interactive) |
-| `--version [bump]` | Bump or set `ENV_SCHEMA_VERSION` (`patch`, `minor`, `major`, or exact semver) |
-| `--sync-package` | With `--version`: also update `package.json` version |
-| `--validate [envFile]` | Validate `.env` against `.env.example` schema (exit 1 if invalid) |
-| `--dry-run` | Preview what would be written without creating/modifying files |
+| Flag                   | Description                                                                         |
+| ---------------------- | ----------------------------------------------------------------------------------- |
+| `-y, --yes`            | Non-interactive: accept existing values or defaults without prompting               |
+| `-f, --force`          | Force re-run even if `.env` is already up-to-date                                   |
+| `-e, --env <name>`     | Target environment (e.g., `local`, `test`, `production`)                            |
+| `--cwd <path>`         | Project root directory (default: current working directory)                         |
+| `--init [source]`      | Create `.env.example` from an existing env file or from scratch                     |
+| `--polish`             | Polish `.env.example`: add descriptions, types, defaults (`-y` for non-interactive) |
+| `--version [bump]`     | Bump or set `ENV_SCHEMA_VERSION` (`patch`, `minor`, `major`, or exact semver)       |
+| `--sync-package`       | With `--version`: also update `package.json` version                                |
+| `--validate [envFile]` | Validate `.env` against `.env.example` schema (exit 1 if invalid)                   |
+| `--dry-run`            | Preview what would be written without creating/modifying files                      |
 
 **Examples:**
 
@@ -140,13 +140,13 @@ Each variable in `.env.example` can be annotated with structured tags in the com
 VARIABLE_NAME=default_value
 ```
 
-| Annotation | Syntax | Purpose |
-|-----------|--------|---------|
-| Description | Free text at start of comment | Human-readable explanation |
-| Required | `[REQUIRED]` | Variable must be non-empty |
-| Type | `[TYPE: <schema-type>]` | Type from `schema.json` for validation and detection |
-| Constraints | `[CONSTRAINTS: key=value,...]` | Constraints (min, max, pattern, etc.) |
-| Default | `Default: <value>` | Documented default (informational) |
+| Annotation  | Syntax                         | Purpose                                              |
+| ----------- | ------------------------------ | ---------------------------------------------------- |
+| Description | Free text at start of comment  | Human-readable explanation                           |
+| Required    | `[REQUIRED]`                   | Variable must be non-empty                           |
+| Type        | `[TYPE: <schema-type>]`        | Type from `schema.json` for validation and detection |
+| Constraints | `[CONSTRAINTS: key=value,...]` | Constraints (min, max, pattern, etc.)                |
+| Default     | `Default: <value>`             | Documented default (informational)                   |
 
 All annotations are optional. The `--polish` command auto-detects and adds them.
 

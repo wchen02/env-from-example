@@ -1,7 +1,7 @@
-import fs from 'fs';
-import path from 'path';
-import { input, select } from '@inquirer/prompts';
-import pc from 'picocolors';
+import fs from "fs";
+import path from "path";
+import { input, select } from "@inquirer/prompts";
+import pc from "picocolors";
 import {
   type SchemaType,
   type EnvVarSchema,
@@ -9,7 +9,7 @@ import {
   findSchemaType,
   parseEnumChoices,
   getAvailableConstraints,
-} from './schema.js';
+} from "./schema.js";
 import {
   parseEnvExample,
   serializeEnvExample,
@@ -20,8 +20,8 @@ import {
   stripMetaFromComment,
   buildCommentLine,
   getDefaultSchemaVersion,
-} from './parse.js';
-import { detectType, matchesSchemaType } from './validate.js';
+} from "./parse.js";
+import { detectType, matchesSchemaType } from "./validate.js";
 
 // ─── Summary card ────────────────────────────────────────────────────────────
 
@@ -40,86 +40,84 @@ function printVariableSummary(
     reqSource: string;
     defaultValue: string;
     group: string;
-  },
+  }
 ): void {
   const progress = `[${index}/${total}]`;
   const W = 60;
   const keyPart = `── ${key} `;
   const progPart = ` ${progress} ──`;
   const fill = Math.max(0, W - keyPart.length - progPart.length);
-  const header = keyPart + '─'.repeat(fill) + progPart;
+  const header = keyPart + "─".repeat(fill) + progPart;
 
-  console.log('');
+  console.log("");
   console.log(pc.cyan(pc.bold(header)));
 
   const L = 16;
   const pad = (s: string) => s.padEnd(L);
   const row = (label: string, value: string, source: string) => {
-    const src = source ? '  ' + pc.dim(pc.yellow(source)) : '';
+    const src = source ? "  " + pc.dim(pc.yellow(source)) : "";
     console.log(`  ${pc.gray(pad(label))}${value}${src}`);
   };
 
-  row('Group', fields.group ? pc.white(fields.group) : pc.dim('(none)'), '');
-  row('Description', pc.white(fields.description), fields.descSource);
+  row("Group", fields.group ? pc.white(fields.group) : pc.dim("(none)"), "");
+  row("Description", pc.white(fields.description), fields.descSource);
 
   if (fields.type && fields.schemaType) {
     const desc = fields.schemaType.description;
-    const short = desc.length > 50 ? desc.substring(0, 47) + '...' : desc;
-    row('Type', pc.cyan(fields.type), fields.typeSource);
-    console.log(`  ${' '.repeat(L)}${pc.dim(short)}`);
+    const short = desc.length > 50 ? desc.substring(0, 47) + "..." : desc;
+    row("Type", pc.cyan(fields.type), fields.typeSource);
+    console.log(`  ${" ".repeat(L)}${pc.dim(short)}`);
   } else if (fields.type) {
-    row('Type', pc.cyan(fields.type), fields.typeSource);
+    row("Type", pc.cyan(fields.type), fields.typeSource);
   } else {
-    row('Type', pc.dim('(none)'), '');
+    row("Type", pc.dim("(none)"), "");
   }
 
   if (fields.schemaType?.examples && fields.schemaType.examples.length > 0) {
-    const exStr = fields.schemaType.examples
-      .map((e) => String(e))
-      .join(', ');
-    const short = exStr.length > 50 ? exStr.substring(0, 47) + '...' : exStr;
-    row('Examples', pc.dim(short), '');
+    const exStr = fields.schemaType.examples.map((e) => String(e)).join(", ");
+    const short = exStr.length > 50 ? exStr.substring(0, 47) + "..." : exStr;
+    row("Examples", pc.dim(short), "");
   }
 
-  if (fields.type === 'structured/enum' && fields.constraints.pattern) {
+  if (fields.type === "structured/enum" && fields.constraints.pattern) {
     const choices = parseEnumChoices(fields.constraints.pattern);
     if (choices.length > 0) {
-      row('Choices', choices.join(pc.dim(' | ')), '');
+      row("Choices", choices.join(pc.dim(" | ")), "");
     }
   }
 
   const methodEntries = Object.entries(fields.constraints).filter(([k]) => {
-    if (k === 'pattern' && fields.type !== 'string') return false;
-    if (k === 'pattern' && fields.type === 'structured/enum') return false;
+    if (k === "pattern" && fields.type !== "string") return false;
+    if (k === "pattern" && fields.type === "structured/enum") return false;
     return true;
   });
   if (methodEntries.length > 0) {
-    const mStr = methodEntries.map(([k, v]) => `${k}=${v}`).join(', ');
-    row('Constraints', pc.white(mStr), 'from [CONSTRAINTS]');
+    const mStr = methodEntries.map(([k, v]) => `${k}=${v}`).join(", ");
+    row("Constraints", pc.white(mStr), "from [CONSTRAINTS]");
   }
 
   row(
-    'Required',
-    fields.required ? pc.green('yes') : pc.dim('no'),
-    fields.reqSource,
+    "Required",
+    fields.required ? pc.green("yes") : pc.dim("no"),
+    fields.reqSource
   );
 
   const autoGen = fields.schemaType?.auto_generate;
   if (autoGen && !fields.defaultValue) {
-    row('Default', pc.magenta(`auto (${autoGen})`), 'from schema type');
+    row("Default", pc.magenta(`auto (${autoGen})`), "from schema type");
   } else if (fields.defaultValue) {
-    row('Default', pc.white(fields.defaultValue), '');
+    row("Default", pc.white(fields.defaultValue), "");
   } else {
-    row('Default', pc.dim('(empty)'), '');
+    row("Default", pc.dim("(empty)"), "");
   }
 
-  console.log(pc.gray('─'.repeat(W)));
+  console.log(pc.gray("─".repeat(W)));
 }
 
 // ─── Non-interactive polish ──────────────────────────────────────────────────
 
 export function polishEnvExample(rootDir: string): void {
-  const envExamplePath = path.join(rootDir, '.env.example');
+  const envExamplePath = path.join(rootDir, ".env.example");
   if (!fs.existsSync(envExamplePath)) {
     throw new Error(`.env.example not found at ${envExamplePath}`);
   }
@@ -128,15 +126,15 @@ export function polishEnvExample(rootDir: string): void {
   const enriched = enrichVariablesForPolish(deduped);
   const effectiveVersion = version ?? getDefaultSchemaVersion(rootDir);
   const content = serializeEnvExample(effectiveVersion, enriched);
-  fs.writeFileSync(envExamplePath, content, 'utf-8');
+  fs.writeFileSync(envExamplePath, content, "utf-8");
 }
 
 // ─── Interactive polish ──────────────────────────────────────────────────────
 
 export async function polishEnvExampleInteractive(
-  rootDir: string,
+  rootDir: string
 ): Promise<void> {
-  const envExamplePath = path.join(rootDir, '.env.example');
+  const envExamplePath = path.join(rootDir, ".env.example");
   if (!fs.existsSync(envExamplePath)) {
     throw new Error(`.env.example not found at ${envExamplePath}`);
   }
@@ -152,34 +150,33 @@ export async function polishEnvExampleInteractive(
     if (g) knownGroups.add(g);
   }
   if (knownGroups.size > 0 && deduped.some((v) => !getGroup(v))) {
-    knownGroups.add('Other');
+    knownGroups.add("Other");
   }
 
   console.log(
-    pc.cyan(pc.bold('  Interactive polish')) +
-      pc.dim(` — ${total} variables to review\n`),
+    pc.cyan(pc.bold("  Interactive polish")) +
+      pc.dim(` — ${total} variables to review\n`)
   );
 
   for (let i = 0; i < deduped.length; i++) {
     const v = deduped[i];
-    let group = getGroup(v) || (knownGroups.size > 0 ? 'Other' : '');
+    let group = getGroup(v) || (knownGroups.size > 0 ? "Other" : "");
 
     let description = inferDescription(v);
     let descSource = stripMetaFromComment(v.comment)
-      ? 'from comment'
-      : 'inferred from key';
+      ? "from comment"
+      : "inferred from key";
 
-    let type: string | undefined =
-      v.type || detectType(v.defaultValue, v.key);
+    let type: string | undefined = v.type || detectType(v.defaultValue, v.key);
     let typeSource: string;
-    if (v.type) typeSource = 'from [TYPE] tag';
-    else if (type) typeSource = 'detected';
-    else typeSource = '';
+    if (v.type) typeSource = "from [TYPE] tag";
+    else if (type) typeSource = "detected";
+    else typeSource = "";
 
     let schemaType = type ? findSchemaType(type) : undefined;
 
     let required = v.required;
-    let reqSource = v.required ? 'from [REQUIRED] tag' : '';
+    let reqSource = v.required ? "from [REQUIRED] tag" : "";
 
     let constraints: Record<string, string> = v.constraints
       ? { ...v.constraints }
@@ -204,16 +201,19 @@ export async function polishEnvExampleInteractive(
 
       const availableConstraints = type ? getAvailableConstraints(type) : {};
       const methodEntries = Object.entries(availableConstraints).filter(
-        ([mKey]) => !(type === 'structured/enum' && mKey === 'pattern'),
+        ([mKey]) => !(type === "structured/enum" && mKey === "pattern")
       );
 
       const actionChoices: { name: string; value: string }[] = [
-        { name: pc.green('Accept'), value: 'accept' },
-        { name: 'Edit description', value: 'edit_desc' },
-        { name: 'Edit type', value: 'edit_type' },
-        { name: 'Edit default', value: 'edit_default' },
-        { name: required ? 'Mark as optional' : 'Mark as required', value: 'edit_required' },
-        { name: 'Edit group', value: 'edit_group' },
+        { name: pc.green("Accept"), value: "accept" },
+        { name: "Edit description", value: "edit_desc" },
+        { name: "Edit type", value: "edit_type" },
+        { name: "Edit default", value: "edit_default" },
+        {
+          name: required ? "Mark as optional" : "Mark as required",
+          value: "edit_required",
+        },
+        { name: "Edit group", value: "edit_group" },
       ];
       for (const [mKey] of methodEntries) {
         const current = constraints[mKey];
@@ -224,20 +224,20 @@ export async function polishEnvExampleInteractive(
       }
 
       const action = await select({
-        message: 'Action',
+        message: "Action",
         choices: actionChoices,
-        default: 'accept',
+        default: "accept",
       });
 
-      if (action === 'accept') {
+      if (action === "accept") {
         accepted = true;
-      } else if (action === 'edit_desc') {
+      } else if (action === "edit_desc") {
         description = await input({
-          message: 'Description',
+          message: "Description",
           default: description,
         });
-        descSource = '';
-      } else if (action === 'edit_type') {
+        descSource = "";
+      } else if (action === "edit_type") {
         const allTypes = getSchemaTypes();
         const trimmedValue = defaultValue.trim();
         const matchingTypes = trimmedValue
@@ -247,60 +247,59 @@ export async function polishEnvExampleInteractive(
         const otherTypes = allTypes.filter((t) => !matchingNames.has(t.name));
 
         const formatType = (t: SchemaType) => ({
-          name: `${t.name}${pc.dim(' — ' + t.description.substring(0, 50))}`,
+          name: `${t.name}${pc.dim(" — " + t.description.substring(0, 50))}`,
           value: t.name,
         });
 
         let newType: string;
         if (matchingTypes.length > 0) {
           const picked = await select({
-            message: 'Type',
+            message: "Type",
             choices: [
-              { name: pc.dim('(none)'), value: '' },
+              { name: pc.dim("(none)"), value: "" },
               ...matchingTypes.map(formatType),
-              { name: pc.cyan('Other...'), value: '__other__' },
+              { name: pc.cyan("Other..."), value: "__other__" },
             ],
-            default: type ?? '',
+            default: type ?? "",
           });
-          if (picked === '__other__') {
+          if (picked === "__other__") {
             newType = await select({
-              message: 'Type',
+              message: "Type",
               choices: [
-                { name: pc.dim('(none)'), value: '' },
+                { name: pc.dim("(none)"), value: "" },
                 ...otherTypes.map(formatType),
               ],
-              default: '',
+              default: "",
             });
           } else {
             newType = picked;
           }
         } else {
           newType = await select({
-            message: 'Type',
+            message: "Type",
             choices: [
-              { name: pc.dim('(none)'), value: '' },
+              { name: pc.dim("(none)"), value: "" },
               ...allTypes.map(formatType),
             ],
-            default: type ?? '',
+            default: type ?? "",
           });
         }
 
-        if (newType === 'structured/enum') {
+        if (newType === "structured/enum") {
           const currentChoices = constraints.pattern
             ? parseEnumChoices(constraints.pattern)
             : [];
           const choicesStr = await input({
-            message:
-              'Enum values (pipe-separated, e.g. debug|info|warn|error)',
-            default: currentChoices.join('|'),
+            message: "Enum values (pipe-separated, e.g. debug|info|warn|error)",
+            default: currentChoices.join("|"),
             validate: (val) =>
-              val.trim().length > 0 || 'At least one value is required',
+              val.trim().length > 0 || "At least one value is required",
           });
           const values = choicesStr
             .split(/[|,]/)
             .map((s) => s.trim())
             .filter(Boolean);
-          constraints = { pattern: `^(${values.join('|')})$` };
+          constraints = { pattern: `^(${values.join("|")})$` };
         } else if (newType) {
           const newAvailable = getAvailableConstraints(newType);
           const cleaned: Record<string, string> = {};
@@ -314,70 +313,75 @@ export async function polishEnvExampleInteractive(
 
         type = newType || undefined;
         schemaType = type ? findSchemaType(type) : undefined;
-        typeSource = '';
-      } else if (action === 'edit_default') {
+        typeSource = "";
+      } else if (action === "edit_default") {
         const autoGen = schemaType?.auto_generate;
         if (autoGen) {
           const defaultChoices = [
-            { name: 'Enter a static value', value: 'static' },
+            { name: "Enter a static value", value: "static" },
             {
               name:
                 pc.magenta(`auto:${autoGen}`) +
-                pc.dim(' — auto-generate when empty'),
-              value: 'auto',
+                pc.dim(" — auto-generate when empty"),
+              value: "auto",
             },
           ];
           const choice = await select({
-            message: 'Default value',
+            message: "Default value",
             choices: defaultChoices,
-            default: defaultValue ? 'static' : 'auto',
+            default: defaultValue ? "static" : "auto",
           });
-          if (choice === 'auto') {
-            defaultValue = '';
+          if (choice === "auto") {
+            defaultValue = "";
           } else {
             defaultValue = await input({
-              message: 'Value',
+              message: "Value",
               default: defaultValue,
             });
           }
         } else {
           defaultValue = await input({
-            message: 'Value',
+            message: "Value",
             default: defaultValue,
           });
         }
-      } else if (action === 'edit_required') {
+      } else if (action === "edit_required") {
         required = !required;
-        reqSource = '';
-      } else if (action === 'edit_group') {
+        reqSource = "";
+      } else if (action === "edit_group") {
         const groupChoices: { name: string; value: string }[] = [];
-        if (!knownGroups.has('Other')) {
-          groupChoices.push({ name: pc.dim('(none)'), value: '' });
+        if (!knownGroups.has("Other")) {
+          groupChoices.push({ name: pc.dim("(none)"), value: "" });
         }
-        groupChoices.push(...[...knownGroups].map((g) => ({ name: g, value: g })));
-        groupChoices.push({ name: pc.cyan('+ New group...'), value: '__new__' });
-        const picked = await select({
-          message: 'Group',
-          choices: groupChoices,
-          default: group || (knownGroups.has('Other') ? 'Other' : ''),
+        groupChoices.push(
+          ...[...knownGroups].map((g) => ({ name: g, value: g }))
+        );
+        groupChoices.push({
+          name: pc.cyan("+ New group..."),
+          value: "__new__",
         });
-        if (picked === '__new__') {
+        const picked = await select({
+          message: "Group",
+          choices: groupChoices,
+          default: group || (knownGroups.has("Other") ? "Other" : ""),
+        });
+        if (picked === "__new__") {
           const newGroup = await input({
-            message: 'Group name (e.g. Database, Auth, App)',
+            message: "Group name (e.g. Database, Auth, App)",
             validate: (val) =>
-              val.trim().length > 0 || 'Group name is required',
+              val.trim().length > 0 || "Group name is required",
           });
           group = newGroup.trim();
           knownGroups.add(group);
         } else {
           group = picked;
         }
-      } else if (action.startsWith('set_method:')) {
-        const mKey = action.slice('set_method:'.length);
-        if (mKey === 'pattern') {
+      } else if (action.startsWith("set_method:")) {
+        const mKey = action.slice("set_method:".length);
+        if (mKey === "pattern") {
           const patternStr = await input({
-            message: 'Pattern (regex, e.g. ^[a-z0-9-]+$) [empty to clear]',
-            default: constraints.pattern || '',
+            message: "Pattern (regex, e.g. ^[a-z0-9-]+$) [empty to clear]",
+            default: constraints.pattern || "",
           });
           if (patternStr.trim()) {
             constraints.pattern = patternStr.trim();
@@ -385,7 +389,7 @@ export async function polishEnvExampleInteractive(
             delete constraints.pattern;
           }
         } else {
-          const current = constraints[mKey] || '';
+          const current = constraints[mKey] || "";
           const val = await input({
             message: `${mKey} [empty to clear]`,
             default: current,
@@ -403,7 +407,8 @@ export async function polishEnvExampleInteractive(
       description,
       required,
       type,
-      constraints: Object.keys(constraints).length > 0 ? constraints : undefined,
+      constraints:
+        Object.keys(constraints).length > 0 ? constraints : undefined,
       defaultValue,
     });
     polished.push({
@@ -412,11 +417,12 @@ export async function polishEnvExampleInteractive(
       defaultValue,
       required,
       type,
-      constraints: Object.keys(constraints).length > 0 ? constraints : undefined,
+      constraints:
+        Object.keys(constraints).length > 0 ? constraints : undefined,
       group: group || undefined,
     });
   }
 
   const content = serializeEnvExample(effectiveVersion, polished);
-  fs.writeFileSync(envExamplePath, content, 'utf-8');
+  fs.writeFileSync(envExamplePath, content, "utf-8");
 }

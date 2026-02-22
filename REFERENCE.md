@@ -10,34 +10,34 @@ Types are defined in `schema.json` as an ordered array. During type detection (`
 
 ### Type Detection Order
 
-| # | Type name | Base type | Description |
-|---|-----------|-----------|-------------|
-| 1 | `credentials/private_key_pem` | string | PEM private key block |
-| 2 | `network/https_url` | string | HTTPS-only URL |
-| 3 | `network/url` | string | HTTP or HTTPS URL |
-| 4 | `network/uri` | string | Non-HTTP service URI (postgres://, redis://, etc.) |
-| 5 | `network/domain` | string | Domain/hostname with TLD |
-| 6 | `network/ip` | string | IPv4 address |
-| 7 | `network/ipv6` | string | IPv6 address |
-| 8 | `version/semver` | string | Semantic version (MAJOR.MINOR.PATCH) |
-| 9 | `id/uuid` | string | UUID (v1–v5) |
-| 10 | `structured/json` | string | JSON string (validated with JSON.parse) |
-| 11 | `structured/key_value_pairs` | string | Comma-separated key=value pairs |
-| 12 | `locale/langtag` | string | BCP-47 language tag (en, en-US, zh-Hant-TW) |
-| 13 | `structured/email_list` | string | Comma-separated emails |
-| 14 | `structured/csv` | string | Comma-separated values |
-| 15 | `file/windows_path` | string | Windows absolute path (C:\...) |
-| 16 | `file/path` | string | POSIX file/directory path |
-| 17 | `temporal/cron` | string | 5-field cron expression |
-| 18 | `temporal/time_hhmm` | string | 24-hour time (HH:MM) |
-| 19 | `temporal/duration` | string | Duration (30s, 5m, 1h, 7d) |
-| 20 | `credentials/secret` | string | API key / token / secret (>= 16 chars) |
-| 21 | `visual/hex_color` | string | Hex color (#RGB, #RRGGBB, #RRGGBBAA) |
-| 22 | `structured/enum` | string | Enumerated value from fixed set |
-| 23 | `float` | number | Floating-point number |
-| 24 | `integer` | integer | Whole number |
-| 25 | `boolean` | boolean | true/false/1/0/yes/no |
-| 26 | `string` | string | Final fallback |
+| #   | Type name                     | Base type | Description                                        |
+| --- | ----------------------------- | --------- | -------------------------------------------------- |
+| 1   | `credentials/private_key_pem` | string    | PEM private key block                              |
+| 2   | `network/https_url`           | string    | HTTPS-only URL                                     |
+| 3   | `network/url`                 | string    | HTTP or HTTPS URL                                  |
+| 4   | `network/uri`                 | string    | Non-HTTP service URI (postgres://, redis://, etc.) |
+| 5   | `network/domain`              | string    | Domain/hostname with TLD                           |
+| 6   | `network/ip`                  | string    | IPv4 address                                       |
+| 7   | `network/ipv6`                | string    | IPv6 address                                       |
+| 8   | `version/semver`              | string    | Semantic version (MAJOR.MINOR.PATCH)               |
+| 9   | `id/uuid`                     | string    | UUID (v1–v5)                                       |
+| 10  | `structured/json`             | string    | JSON string (validated with JSON.parse)            |
+| 11  | `structured/key_value_pairs`  | string    | Comma-separated key=value pairs                    |
+| 12  | `locale/langtag`              | string    | BCP-47 language tag (en, en-US, zh-Hant-TW)        |
+| 13  | `structured/email_list`       | string    | Comma-separated emails                             |
+| 14  | `structured/csv`              | string    | Comma-separated values                             |
+| 15  | `file/windows_path`           | string    | Windows absolute path (C:\...)                     |
+| 16  | `file/path`                   | string    | POSIX file/directory path                          |
+| 17  | `temporal/cron`               | string    | 5-field cron expression                            |
+| 18  | `temporal/time_hhmm`          | string    | 24-hour time (HH:MM)                               |
+| 19  | `temporal/duration`           | string    | Duration (30s, 5m, 1h, 7d)                         |
+| 20  | `credentials/secret`          | string    | API key / token / secret (>= 16 chars)             |
+| 21  | `visual/hex_color`            | string    | Hex color (#RGB, #RRGGBB, #RRGGBBAA)               |
+| 22  | `structured/enum`             | string    | Enumerated value from fixed set                    |
+| 23  | `float`                       | number    | Floating-point number                              |
+| 24  | `integer`                     | integer   | Whole number                                       |
+| 25  | `boolean`                     | boolean   | true/false/1/0/yes/no                              |
+| 26  | `string`                      | string    | Final fallback                                     |
 
 ### How Detection Works
 
@@ -81,17 +81,17 @@ The `[CONSTRAINTS: key=value,...]` annotation sets validation constraints for a 
 
 ### Available Constraints by Base Type
 
-| Base type | Key | Constraint |
-|-----------|--------|-----------|
-| `number` (float) | `min` | Value >= min |
-| `number` (float) | `max` | Value <= max |
-| `number` (float) | `precision` | Max decimal places |
-| `integer` | `min` | Value >= min |
-| `integer` | `max` | Value <= max |
-| `string` | `minLength` | Value length >= minLength |
-| `string` | `maxLength` | Value length <= maxLength |
-| `string` | `pattern` | Value must match regex |
-| `boolean` | _(none)_ | Validates true/false/1/0/yes/no |
+| Base type        | Key         | Constraint                      |
+| ---------------- | ----------- | ------------------------------- |
+| `number` (float) | `min`       | Value >= min                    |
+| `number` (float) | `max`       | Value <= max                    |
+| `number` (float) | `precision` | Max decimal places              |
+| `integer`        | `min`       | Value >= min                    |
+| `integer`        | `max`       | Value <= max                    |
+| `string`         | `minLength` | Value length >= minLength       |
+| `string`         | `maxLength` | Value length <= maxLength       |
+| `string`         | `pattern`   | Value must match regex          |
+| `boolean`        | _(none)_    | Validates true/false/1/0/yes/no |
 
 String sub-types (like `network/url`, `visual/hex_color`, etc.) inherit string constraints.
 
@@ -158,11 +158,11 @@ Some types in `schema.json` have an `auto_generate` field that tells the CLI to 
 
 ### Types with Auto-generation
 
-| Type | auto_generate | Output |
-|------|--------------|--------|
-| `credentials/private_key_pem` | `rsa_private_key` | RSA 2048-bit PEM private key |
-| `id/uuid` | `uuidv4` | UUID v4 (36 chars) |
-| `credentials/secret` | `random_secret_32` | 32-byte base64 string (~44 chars) |
+| Type                          | auto_generate      | Output                            |
+| ----------------------------- | ------------------ | --------------------------------- |
+| `credentials/private_key_pem` | `rsa_private_key`  | RSA 2048-bit PEM private key      |
+| `id/uuid`                     | `uuidv4`           | UUID v4 (36 chars)                |
+| `credentials/secret`          | `random_secret_32` | 32-byte base64 string (~44 chars) |
 
 ### How It Works
 
@@ -196,12 +196,12 @@ VARIABLE=default_value
 
 ### Default Behavior
 
-| Scenario | What happens |
-|----------|-------------|
-| `VAR=value` | `value` is shown as the default in prompts; used with `-y` |
-| `VAR=` | No default; user must enter a value (or it stays empty). Required if `[REQUIRED]` |
-| `VAR=` with auto_generate type | A random value is generated and shown as the default |
-| `# VAR=value` (commented out) | Variable is included in output with that default; **not** prompted interactively |
+| Scenario                       | What happens                                                                      |
+| ------------------------------ | --------------------------------------------------------------------------------- |
+| `VAR=value`                    | `value` is shown as the default in prompts; used with `-y`                        |
+| `VAR=`                         | No default; user must enter a value (or it stays empty). Required if `[REQUIRED]` |
+| `VAR=` with auto_generate type | A random value is generated and shown as the default                              |
+| `# VAR=value` (commented out)  | Variable is included in output with that default; **not** prompted interactively  |
 
 ### Schema Type Defaults
 
@@ -246,15 +246,15 @@ For each variable, a **summary card** is displayed showing all detected fields:
 
 ### Available Actions
 
-| Action | What it does |
-|--------|-------------|
-| **Accept** | Keep all detected values and move to the next variable |
-| **Edit description** | Change the human-readable description text |
-| **Edit type** | Select a type from the full `schema.json` list |
-| **Edit default** | Choose between a static value or auto-generation (if type supports it) |
-| **Mark as required/optional** | Toggle whether the variable is required |
-| **Edit group** | Change or create a section group |
-| **Set min**, **Set max**, **Set precision**, etc. | Shown per-type; directly set or clear individual constraints |
+| Action                                            | What it does                                                           |
+| ------------------------------------------------- | ---------------------------------------------------------------------- |
+| **Accept**                                        | Keep all detected values and move to the next variable                 |
+| **Edit description**                              | Change the human-readable description text                             |
+| **Edit type**                                     | Select a type from the full `schema.json` list                         |
+| **Edit default**                                  | Choose between a static value or auto-generation (if type supports it) |
+| **Mark as required/optional**                     | Toggle whether the variable is required                                |
+| **Edit group**                                    | Change or create a section group                                       |
+| **Set min**, **Set max**, **Set precision**, etc. | Shown per-type; directly set or clear individual constraints           |
 
 Constraint actions appear only when relevant to the current type (e.g., `Set min` and `Set max` for integers, `Set pattern` for strings). Current values are shown inline. After any edit, the summary card is re-displayed so you can review before accepting.
 
@@ -270,16 +270,16 @@ Applies detection and normalization in one pass without prompts.
 
 ## `.env.example` Conventions Reference
 
-| In `.env.example` | Behavior |
-|-------------------|----------|
-| `# ENV_SCHEMA_VERSION="1.0"` | Stored in generated `.env`; used for "up-to-date" checks |
-| Comment line above a variable | Shown as description; `[REQUIRED]` triggers validation |
-| `[TYPE: <name>]` in comment | Type from `schema.json` for detection and validation |
-| `[CONSTRAINTS: key=value,...]` in comment | Constraints (min, max, pattern, etc.) |
-| `VAR=value` | Default used if user doesn't change it |
-| `VAR=` | No default; user must enter (or CLI override) |
-| `# VAR=value` (commented-out) | Included in output with default; not prompted interactively |
-| Section groups | Multi-line banner only (see below); variables with no group become **Other** when any group is used |
+| In `.env.example`                         | Behavior                                                                                            |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `# ENV_SCHEMA_VERSION="1.0"`              | Stored in generated `.env`; used for "up-to-date" checks                                            |
+| Comment line above a variable             | Shown as description; `[REQUIRED]` triggers validation                                              |
+| `[TYPE: <name>]` in comment               | Type from `schema.json` for detection and validation                                                |
+| `[CONSTRAINTS: key=value,...]` in comment | Constraints (min, max, pattern, etc.)                                                               |
+| `VAR=value`                               | Default used if user doesn't change it                                                              |
+| `VAR=`                                    | No default; user must enter (or CLI override)                                                       |
+| `# VAR=value` (commented-out)             | Included in output with default; not prompted interactively                                         |
+| Section groups                            | Multi-line banner only (see below); variables with no group become **Other** when any group is used |
 
 ### Section groups (banner only)
 

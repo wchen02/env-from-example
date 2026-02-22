@@ -1,25 +1,22 @@
-import fs from 'fs';
-import path from 'path';
-import crypto from 'crypto';
+import fs from "fs";
+import path from "path";
+import crypto from "crypto";
 import {
   type SchemaType,
   type EnvVarSchema,
   getSchemaTypes,
   findSchemaType,
   parseEnumChoices,
-} from './schema.js';
+} from "./schema.js";
 import {
   parseEnvExample,
   getExistingEnvVersion,
   getExistingEnvVariables,
-} from './parse.js';
+} from "./parse.js";
 
 // ─── Type detection ──────────────────────────────────────────────────────────
 
-export function detectType(
-  value: string,
-  key: string,
-): string | undefined {
+export function detectType(value: string, key: string): string | undefined {
   const trimmed = value.trim();
   if (!trimmed) return undefined;
 
@@ -33,18 +30,22 @@ export function detectType(
 export function matchesSchemaType(
   t: SchemaType,
   value: string,
-  key: string,
+  key: string
 ): boolean {
   if (t.pattern) {
-    if (t.name === 'file/path' && !/[/\\]|^[.~]/.test(value)) return false;
-    if (t.name === 'locale/langtag' && /^(true|false|yes|no|on|off|ok)$/i.test(value)) return false;
+    if (t.name === "file/path" && !/[/\\]|^[.~]/.test(value)) return false;
+    if (
+      t.name === "locale/langtag" &&
+      /^(true|false|yes|no|on|off|ok)$/i.test(value)
+    )
+      return false;
 
     try {
       if (!new RegExp(t.pattern).test(value)) return false;
     } catch {
       return false;
     }
-    if (t.name === 'structured/json') {
+    if (t.name === "structured/json") {
       try {
         JSON.parse(value);
       } catch {
@@ -54,23 +55,23 @@ export function matchesSchemaType(
     return true;
   }
 
-  if (t.name === 'credentials/secret' && t.minLength !== undefined) {
+  if (t.name === "credentials/secret" && t.minLength !== undefined) {
     return (
       /SECRET|KEY|TOKEN|PASSWORD|SALT|BEARER|CREDENTIAL|AUTH/i.test(key) &&
       value.length >= t.minLength
     );
   }
 
-  if (t.name === 'float' && t.type === 'number') {
+  if (t.name === "float" && t.type === "number") {
     return /^-?\d*\.\d+$/.test(value) && !isNaN(parseFloat(value));
   }
-  if (t.name === 'integer' && t.type === 'integer') {
+  if (t.name === "integer" && t.type === "integer") {
     return /^-?\d+$/.test(value) && !isNaN(parseInt(value, 10));
   }
-  if (t.name === 'boolean' && t.type === 'boolean') {
+  if (t.name === "boolean" && t.type === "boolean") {
     return /^(true|false|1|0|yes|no)$/i.test(value);
   }
-  if (t.name === 'string' && t.type === 'string' && !t.pattern) {
+  if (t.name === "string" && t.type === "string" && !t.pattern) {
     return true;
   }
 
@@ -79,10 +80,7 @@ export function matchesSchemaType(
 
 // ─── Value validation ────────────────────────────────────────────────────────
 
-export function validateValue(
-  value: string,
-  v: EnvVarSchema,
-): string | null {
+export function validateValue(value: string, v: EnvVarSchema): string | null {
   const trimmed = value.trim();
   if (v.required && !trimmed) return `${v.key} is required.`;
   if (!trimmed && !v.required) return null;
@@ -91,12 +89,12 @@ export function validateValue(
   const st = findSchemaType(v.type);
   if (!st) return null;
 
-  if (v.type === 'structured/enum' && v.constraints?.pattern) {
+  if (v.type === "structured/enum" && v.constraints?.pattern) {
     try {
       if (!new RegExp(v.constraints.pattern).test(trimmed)) {
         const choices = parseEnumChoices(v.constraints.pattern);
         if (choices.length > 0) {
-          return `${v.key} must be one of: ${choices.join(', ')}`;
+          return `${v.key} must be one of: ${choices.join(", ")}`;
         }
         return `${v.key} must match pattern ${v.constraints.pattern}`;
       }
@@ -116,7 +114,7 @@ export function validateValue(
     }
   }
 
-  if (v.type === 'structured/json') {
+  if (v.type === "structured/json") {
     try {
       JSON.parse(trimmed);
     } catch {
@@ -124,7 +122,7 @@ export function validateValue(
     }
   }
 
-  if (st.type === 'number' || st.name === 'float') {
+  if (st.type === "number" || st.name === "float") {
     const n = Number(trimmed);
     if (isNaN(n)) return `${v.key} must be a number.`;
     const m = v.constraints || {};
@@ -134,17 +132,16 @@ export function validateValue(
       return `${v.key} must be <= ${m.max}.`;
     if (m.precision !== undefined) {
       const prec = Number(m.precision);
-      const decPart = trimmed.split('.')[1];
+      const decPart = trimmed.split(".")[1];
       if (decPart && decPart.length > prec) {
         return `${v.key} must have at most ${prec} decimal places.`;
       }
     }
   }
 
-  if (st.type === 'integer' || st.name === 'integer') {
+  if (st.type === "integer" || st.name === "integer") {
     const n = Number(trimmed);
-    if (isNaN(n) || Math.floor(n) !== n)
-      return `${v.key} must be an integer.`;
+    if (isNaN(n) || Math.floor(n) !== n) return `${v.key} must be an integer.`;
     const m = v.constraints || {};
     if (m.min !== undefined && n < Number(m.min))
       return `${v.key} must be >= ${m.min}.`;
@@ -152,7 +149,7 @@ export function validateValue(
       return `${v.key} must be <= ${m.max}.`;
   }
 
-  if (st.type === 'boolean' || st.name === 'boolean') {
+  if (st.type === "boolean" || st.name === "boolean") {
     if (!/^(true|false|1|0|yes|no)$/i.test(trimmed)) {
       return `${v.key} must be a boolean (true/false/1/0/yes/no).`;
     }
@@ -162,7 +159,7 @@ export function validateValue(
     return `${v.key} must be at least ${st.minLength} characters.`;
   }
 
-  if (st.type === 'string') {
+  if (st.type === "string") {
     const m = v.constraints || {};
     if (m.minLength !== undefined && trimmed.length < Number(m.minLength))
       return `${v.key} must be at least ${m.minLength} characters.`;
@@ -191,10 +188,10 @@ export interface ValidateEnvResult {
 
 export function validateEnv(
   rootDir: string,
-  options: { envFile?: string } = {},
+  options: { envFile?: string } = {}
 ): ValidateEnvResult {
   const { version, variables } = parseEnvExample(rootDir);
-  const envFileName = options.envFile || '.env';
+  const envFileName = options.envFile || ".env";
   const envPath = path.join(rootDir, envFileName);
   const existing = getExistingEnvVariables(envPath);
   const errors: string[] = [];
@@ -202,11 +199,11 @@ export function validateEnv(
 
   if (fs.existsSync(envPath) && version) {
     const schemaVersionInEnv = getExistingEnvVersion(
-      fs.readFileSync(envPath, 'utf-8'),
+      fs.readFileSync(envPath, "utf-8")
     );
     if (schemaVersionInEnv !== null && schemaVersionInEnv !== version) {
       warnings.push(
-        `ENV_SCHEMA_VERSION mismatch: ${envFileName} has "${schemaVersionInEnv}", .env.example has "${version}".`,
+        `ENV_SCHEMA_VERSION mismatch: ${envFileName} has "${schemaVersionInEnv}", .env.example has "${version}".`
       );
     }
   }
@@ -236,23 +233,23 @@ export function coerceToType(value: string, typeName?: string): string {
 
   const trimmed = value.trim();
 
-  if (st.type === 'number' || st.name === 'float') {
+  if (st.type === "number" || st.name === "float") {
     const n = Number(trimmed);
     if (isNaN(n)) return value;
     return String(n);
   }
-  if (st.type === 'integer' || st.name === 'integer') {
+  if (st.type === "integer" || st.name === "integer") {
     const n = Number(trimmed);
     if (isNaN(n)) return value;
     return String(Math.floor(n));
   }
-  if (st.type === 'boolean' || st.name === 'boolean') {
+  if (st.type === "boolean" || st.name === "boolean") {
     const lower = trimmed.toLowerCase();
-    if (['true', '1', 'yes'].includes(lower)) return 'true';
-    if (['false', '0', 'no', ''].includes(lower)) return 'false';
+    if (["true", "1", "yes"].includes(lower)) return "true";
+    if (["false", "0", "no", ""].includes(lower)) return "false";
     return value;
   }
-  if (st.type === 'string') return trimmed;
+  if (st.type === "string") return trimmed;
 
   return value;
 }
@@ -261,19 +258,19 @@ export function coerceToType(value: string, typeName?: string): string {
 
 const AUTO_GENERATORS: Record<string, () => string> = {
   rsa_private_key: () => {
-    const { privateKey } = crypto.generateKeyPairSync('rsa', {
+    const { privateKey } = crypto.generateKeyPairSync("rsa", {
       modulusLength: 2048,
-      publicKeyEncoding: { type: 'spki', format: 'pem' },
-      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+      publicKeyEncoding: { type: "spki", format: "pem" },
+      privateKeyEncoding: { type: "pkcs8", format: "pem" },
     });
     return privateKey as string;
   },
   uuidv4: () => crypto.randomUUID(),
-  random_secret_32: () => crypto.randomBytes(32).toString('base64'),
+  random_secret_32: () => crypto.randomBytes(32).toString("base64"),
 };
 
 export function generateAutoValue(kind: string): string {
   const gen = AUTO_GENERATORS[kind];
-  if (!gen) return '';
+  if (!gen) return "";
   return gen();
 }

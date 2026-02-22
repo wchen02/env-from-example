@@ -1,32 +1,33 @@
 #!/usr/bin/env node
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { Command } from 'commander';
-import { input, confirm, select } from '@inquirer/prompts';
-import pc from 'picocolors';
-import { type EnvVarSchema, findSchemaType, parseEnumChoices } from './src/schema.js';
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { Command } from "commander";
+import { input, confirm, select } from "@inquirer/prompts";
+import pc from "picocolors";
+import {
+  type EnvVarSchema,
+  findSchemaType,
+  parseEnumChoices,
+} from "./src/schema.js";
 import {
   parseEnvExample,
   getExistingEnvVersion,
   getExistingEnvVariables,
-  serializeEnvExample,
   groupVariablesBySection,
   getGroup,
   inferDescription,
   stripMetaFromComment,
   initEnvExample,
-  getDefaultSchemaVersion,
-} from './src/parse.js';
+} from "./src/parse.js";
 import {
-  detectType,
   validateValue,
   validateEnv,
   coerceToType,
   generateAutoValue,
-} from './src/validate.js';
-import { polishEnvExample, polishEnvExampleInteractive } from './src/polish.js';
-import { bumpSemver, updateEnvSchemaVersion } from './src/version.js';
+} from "./src/validate.js";
+import { polishEnvExample, polishEnvExampleInteractive } from "./src/polish.js";
+import { bumpSemver, updateEnvSchemaVersion } from "./src/version.js";
 
 // ─── Re-exports (public API consumed by tests and external users) ────────────
 
@@ -40,7 +41,7 @@ export {
   findSchemaType,
   parseEnumChoices,
   getAvailableConstraints,
-} from './src/schema.js';
+} from "./src/schema.js";
 
 export {
   parseEnvExample,
@@ -49,7 +50,7 @@ export {
   serializeEnvExample,
   inferDescription,
   initEnvExample,
-} from './src/parse.js';
+} from "./src/parse.js";
 
 export {
   detectType,
@@ -59,16 +60,16 @@ export {
   validateEnv,
   coerceToType,
   generateAutoValue,
-} from './src/validate.js';
+} from "./src/validate.js";
 
-export { polishEnvExample, polishEnvExampleInteractive } from './src/polish.js';
-export { bumpSemver, updateEnvSchemaVersion } from './src/version.js';
+export { polishEnvExample, polishEnvExampleInteractive } from "./src/polish.js";
+export { bumpSemver, updateEnvSchemaVersion } from "./src/version.js";
 
 // ─── CLI helpers ─────────────────────────────────────────────────────────────
 
 export function getRootDirFromArgv(): string {
   const argv = process.argv;
-  const cwdIdx = argv.indexOf('--cwd');
+  const cwdIdx = argv.indexOf("--cwd");
   if (cwdIdx !== -1 && argv[cwdIdx + 1]) {
     return path.resolve(argv[cwdIdx + 1]);
   }
@@ -77,16 +78,16 @@ export function getRootDirFromArgv(): string {
 
 function renderGroupBanner(groupName: string): string[] {
   const W = 40;
-  const bar = '# ' + '='.repeat(W);
+  const bar = "# " + "=".repeat(W);
   const padLen = Math.max(1, Math.floor((W - groupName.length) / 2));
-  const center = '#' + ' '.repeat(padLen) + groupName;
+  const center = "#" + " ".repeat(padLen) + groupName;
   return [bar, center, bar];
 }
 
 function buildEnvContent(
   schemaVersion: string | null,
   variables: EnvVarSchema[],
-  finalValues: Record<string, string>,
+  finalValues: Record<string, string>
 ): string {
   let content = `# ==============================================\n`;
   content += `# Environment Variables\n`;
@@ -99,11 +100,11 @@ function buildEnvContent(
   content += `# ==============================================\n\n`;
 
   const grouped = groupVariablesBySection(variables);
-  let lastGroup = '';
+  let lastGroup = "";
   for (const v of grouped) {
     const group = getGroup(v);
     if (group && group !== lastGroup) {
-      content += '\n' + renderGroupBanner(group).join('\n') + '\n\n';
+      content += "\n" + renderGroupBanner(group).join("\n") + "\n\n";
       lastGroup = group;
     }
 
@@ -114,11 +115,9 @@ function buildEnvContent(
 
     if (v.key in finalValues) {
       const val = finalValues[v.key];
-      const needsQuotes = /[\s#"']/.test(val) || val === '';
+      const needsQuotes = /[\s#"']/.test(val) || val === "";
       const safeValue =
-        needsQuotes && val !== ''
-          ? `"${val.replace(/"/g, '\\"')}"`
-          : val;
+        needsQuotes && val !== "" ? `"${val.replace(/"/g, '\\"')}"` : val;
       content += `${v.key}=${safeValue}\n`;
     } else {
       content += `# ${v.key}=\n`;
@@ -139,17 +138,17 @@ interface SetupSummary {
 function printSummary(
   summary: SetupSummary,
   envFileName: string,
-  schemaVersion: string | null,
+  schemaVersion: string | null
 ): void {
-  console.log('');
+  console.log("");
   console.log(
-    pc.green(pc.bold(`✅ ${envFileName} successfully created/updated!`)),
+    pc.green(pc.bold(`✅ ${envFileName} successfully created/updated!`))
   );
   if (schemaVersion) {
     console.log(pc.gray(`   Schema version: ${schemaVersion}`));
   }
 
-  console.log('');
+  console.log("");
   const total =
     summary.fromExisting.length +
     summary.fromDefault.length +
@@ -161,44 +160,43 @@ function printSummary(
   if (summary.fromCli.length > 0) {
     console.log(
       pc.cyan(`   ⮑  ${summary.fromCli.length} from CLI flags: `) +
-        pc.dim(summary.fromCli.join(', ')),
+        pc.dim(summary.fromCli.join(", "))
     );
   }
   if (summary.fromExisting.length > 0) {
     console.log(
       pc.green(
-        `   ⮑  ${summary.fromExisting.length} from existing ${envFileName}: `,
-      ) + pc.dim(summary.fromExisting.join(', ')),
+        `   ⮑  ${summary.fromExisting.length} from existing ${envFileName}: `
+      ) + pc.dim(summary.fromExisting.join(", "))
     );
   }
   if (summary.fromDefault.length > 0) {
     console.log(
       pc.blue(`   ⮑  ${summary.fromDefault.length} from defaults: `) +
-        pc.dim(summary.fromDefault.join(', ')),
+        pc.dim(summary.fromDefault.join(", "))
     );
   }
   if (summary.autoGenerated.length > 0) {
     console.log(
-      pc.magenta(
-        `   ⮑  ${summary.autoGenerated.length} auto-generated: `,
-      ) + pc.dim(summary.autoGenerated.join(', ')),
+      pc.magenta(`   ⮑  ${summary.autoGenerated.length} auto-generated: `) +
+        pc.dim(summary.autoGenerated.join(", "))
     );
   }
   if (summary.skippedCommented.length > 0) {
     console.log(
       pc.gray(
-        `   ⮑  ${summary.skippedCommented.length} commented-out (kept as-is): `,
-      ) + pc.dim(summary.skippedCommented.join(', ')),
+        `   ⮑  ${summary.skippedCommented.length} commented-out (kept as-is): `
+      ) + pc.dim(summary.skippedCommented.join(", "))
     );
   }
   if (summary.requiredMissing.length > 0) {
     console.log(
       pc.yellow(
-        `   ⚠  ${summary.requiredMissing.length} required but empty: `,
-      ) + pc.dim(summary.requiredMissing.join(', ')),
+        `   ⚠  ${summary.requiredMissing.length} required but empty: `
+      ) + pc.dim(summary.requiredMissing.join(", "))
     );
   }
-  console.log('');
+  console.log("");
 }
 
 // ─── Main CLI ────────────────────────────────────────────────────────────────
@@ -206,53 +204,53 @@ function printSummary(
 async function run() {
   const program = new Command();
   program
-    .name('env-from-example')
+    .name("env-from-example")
     .description(
-      'Interactive and non-interactive CLI to set up .env from .env.example',
+      "Interactive and non-interactive CLI to set up .env from .env.example"
     )
     .option(
-      '-y, --yes',
-      'Non-interactive: accept existing values or defaults without prompting',
+      "-y, --yes",
+      "Non-interactive: accept existing values or defaults without prompting"
     )
-    .option('-f, --force', 'Force re-run even if .env is already up-to-date')
+    .option("-f, --force", "Force re-run even if .env is already up-to-date")
     .option(
-      '-e, --env <environment>',
-      'Target environment (e.g., local, test, production)',
-    )
-    .option(
-      '--cwd <path>',
-      'Project root directory (default: current working directory)',
+      "-e, --env <environment>",
+      "Target environment (e.g., local, test, production)"
     )
     .option(
-      '--init [source]',
-      'Create .env.example from an existing env file (default: .env) or from scratch',
+      "--cwd <path>",
+      "Project root directory (default: current working directory)"
     )
     .option(
-      '--polish',
-      'Polish .env.example: add descriptions, types, defaults (use -y for non-interactive)',
+      "--init [source]",
+      "Create .env.example from an existing env file (default: .env) or from scratch"
     )
     .option(
-      '--version [bump]',
-      'Bump or set ENV_SCHEMA_VERSION (patch|minor|major or exact semver)',
+      "--polish",
+      "Polish .env.example: add descriptions, types, defaults (use -y for non-interactive)"
     )
     .option(
-      '--sync-package',
-      'With --version: also update package.json version',
+      "--version [bump]",
+      "Bump or set ENV_SCHEMA_VERSION (patch|minor|major or exact semver)"
     )
     .option(
-      '--validate [envFile]',
-      'Validate .env against .env.example schema (exit 1 if invalid)',
+      "--sync-package",
+      "With --version: also update package.json version"
     )
     .option(
-      '--dry-run',
-      'Preview what would be written without creating/modifying files',
+      "--validate [envFile]",
+      "Validate .env against .env.example schema (exit 1 if invalid)"
+    )
+    .option(
+      "--dry-run",
+      "Preview what would be written without creating/modifying files"
     );
 
   const earlyRoot = getRootDirFromArgv();
   try {
     const { variables: earlyVars } = parseEnvExample(earlyRoot);
     earlyVars.forEach((v) => {
-      const optName = `--${v.key.toLowerCase().replace(/_/g, '-')}`;
+      const optName = `--${v.key.toLowerCase().replace(/_/g, "-")}`;
       const desc = stripMetaFromComment(v.comment) || `Set ${v.key}`;
       program.option(`${optName} <value>`, desc);
     });
@@ -267,17 +265,17 @@ async function run() {
   if (options.init !== undefined) {
     try {
       const source =
-        typeof options.init === 'string' ? options.init : undefined;
+        typeof options.init === "string" ? options.init : undefined;
       initEnvExample(ROOT_DIR, { from: source });
-      console.log(pc.green(pc.bold('✅ .env.example created.')));
+      console.log(pc.green(pc.bold("✅ .env.example created.")));
       if (options.yes) {
         polishEnvExample(ROOT_DIR);
         console.log(
-          pc.green(pc.bold('✅ .env.example polished (non-interactive).')),
+          pc.green(pc.bold("✅ .env.example polished (non-interactive)."))
         );
       } else {
         await polishEnvExampleInteractive(ROOT_DIR);
-        console.log(pc.green(pc.bold('✅ .env.example polished.')));
+        console.log(pc.green(pc.bold("✅ .env.example polished.")));
       }
       return;
     } catch (e) {
@@ -291,20 +289,18 @@ async function run() {
       if (options.yes) {
         polishEnvExample(ROOT_DIR);
         console.log(
-          pc.green(
-            pc.bold('✅ .env.example polished (non-interactive).'),
-          ),
+          pc.green(pc.bold("✅ .env.example polished (non-interactive)."))
         );
       } else {
         console.log(
           pc.cyan(
             pc.bold(
-              'Interactive polish: conform .env.example to convention (description, default, type, etc.)\n',
-            ),
-          ),
+              "Interactive polish: conform .env.example to convention (description, default, type, etc.)\n"
+            )
+          )
         );
         await polishEnvExampleInteractive(ROOT_DIR);
-        console.log(pc.green(pc.bold('✅ .env.example polished.')));
+        console.log(pc.green(pc.bold("✅ .env.example polished.")));
       }
       return;
     } catch (e) {
@@ -315,25 +311,21 @@ async function run() {
 
   if (options.validate !== undefined) {
     const envFile =
-      options.validate === true ? '.env' : `.env.${options.validate}`;
+      options.validate === true ? ".env" : `.env.${options.validate}`;
     try {
       const result = validateEnv(ROOT_DIR, { envFile });
       if (result.warnings.length > 0) {
-        result.warnings.forEach((w) =>
-          console.warn(pc.yellow('Warning:'), w),
-        );
+        result.warnings.forEach((w) => console.warn(pc.yellow("Warning:"), w));
       }
       if (result.valid) {
         console.log(
           pc.green(
-            pc.bold(
-              `✅ ${envFile} is valid against .env.example schema.`,
-            ),
-          ),
+            pc.bold(`✅ ${envFile} is valid against .env.example schema.`)
+          )
         );
         return;
       }
-      result.errors.forEach((e) => console.error(pc.red('Error:'), e));
+      result.errors.forEach((e) => console.error(pc.red("Error:"), e));
       process.exit(1);
     } catch (e) {
       console.error(pc.red(e instanceof Error ? e.message : String(e)));
@@ -344,27 +336,24 @@ async function run() {
   if (options.version !== undefined) {
     try {
       const { version } = parseEnvExample(ROOT_DIR);
-      const current = version || '1.0.0';
-      const bump =
-        options.version === true ? undefined : options.version;
+      const current = version || "1.0.0";
+      const bump = options.version === true ? undefined : options.version;
       let newVersion: string;
-      if (bump === 'patch' || bump === 'minor' || bump === 'major') {
+      if (bump === "patch" || bump === "minor" || bump === "major") {
         newVersion = bumpSemver(current, bump);
-      } else if (bump && typeof bump === 'string') {
+      } else if (bump && typeof bump === "string") {
         newVersion = bump;
       } else {
-        newVersion = bumpSemver(current, 'patch');
+        newVersion = bumpSemver(current, "patch");
       }
       updateEnvSchemaVersion(ROOT_DIR, newVersion, {
         syncPackage: options.syncPackage,
       });
       console.log(
-        pc.green(
-          pc.bold(`✅ ENV_SCHEMA_VERSION set to ${newVersion}`),
-        ),
+        pc.green(pc.bold(`✅ ENV_SCHEMA_VERSION set to ${newVersion}`))
       );
       if (options.syncPackage) {
-        console.log(pc.gray('   package.json version updated.'));
+        console.log(pc.gray("   package.json version updated."));
       }
       return;
     } catch (e) {
@@ -382,23 +371,23 @@ async function run() {
     schemaVersion = result.version;
     variables = result.variables;
   } catch {
-    const examplePath = path.join(ROOT_DIR, '.env.example');
+    const examplePath = path.join(ROOT_DIR, ".env.example");
     console.error(pc.red(`No .env.example found at ${examplePath}`));
-    console.error('');
-    console.error(pc.bold('To get started:'));
+    console.error("");
+    console.error(pc.bold("To get started:"));
     console.error(
-      pc.cyan('  env-from-example --init') +
-        pc.gray('          Create a starter .env.example'),
+      pc.cyan("  env-from-example --init") +
+        pc.gray("          Create a starter .env.example")
     );
     console.error(
-      pc.cyan('  env-from-example --init .env') +
-        pc.gray('     Create .env.example from existing .env'),
+      pc.cyan("  env-from-example --init .env") +
+        pc.gray("     Create .env.example from existing .env")
     );
-    console.error('');
+    console.error("");
     console.error(
       pc.gray(
-        'Or create .env.example manually — see https://www.npmjs.com/package/env-from-example',
-      ),
+        "Or create .env.example manually — see https://www.npmjs.com/package/env-from-example"
+      )
     );
     process.exit(1);
   }
@@ -406,42 +395,42 @@ async function run() {
   const activeVars = variables.filter((v) => !v.isCommentedOut);
   const totalPromptable = activeVars.length;
 
-  console.log('');
+  console.log("");
   console.log(
-    pc.cyan(pc.bold('  env-from-example')) +
-      pc.gray(` — ${totalPromptable} variables from .env.example`),
+    pc.cyan(pc.bold("  env-from-example")) +
+      pc.gray(` — ${totalPromptable} variables from .env.example`)
   );
-  console.log('');
+  console.log("");
 
   let targetEnv = options.env;
 
   if (!targetEnv && !options.yes) {
     const envChoice = await select({
-      message: 'Select target environment to generate:',
+      message: "Select target environment to generate:",
       choices: [
-        { name: 'default (.env)', value: 'default' },
-        { name: 'local (.env.local)', value: 'local' },
-        { name: 'test (.env.test)', value: 'test' },
-        { name: 'staging (.env.stage)', value: 'stage' },
-        { name: 'production (.env.production)', value: 'production' },
-        { name: 'custom', value: 'custom' },
+        { name: "default (.env)", value: "default" },
+        { name: "local (.env.local)", value: "local" },
+        { name: "test (.env.test)", value: "test" },
+        { name: "staging (.env.stage)", value: "stage" },
+        { name: "production (.env.production)", value: "production" },
+        { name: "custom", value: "custom" },
       ],
     });
 
-    if (envChoice === 'custom') {
+    if (envChoice === "custom") {
       targetEnv = await input({
-        message: 'Enter custom environment name (e.g., ci, demo):',
+        message: "Enter custom environment name (e.g., ci, demo):",
         validate: (val) =>
-          val.trim().length > 0 || 'Environment name is required',
+          val.trim().length > 0 || "Environment name is required",
       });
     } else {
-      targetEnv = envChoice === 'default' ? '' : envChoice;
+      targetEnv = envChoice === "default" ? "" : envChoice;
     }
   } else if (!targetEnv) {
-    targetEnv = '';
+    targetEnv = "";
   }
 
-  const envFileName = targetEnv ? `.env.${targetEnv}` : '.env';
+  const envFileName = targetEnv ? `.env.${targetEnv}` : ".env";
   const envPath = path.join(ROOT_DIR, envFileName);
 
   const existingEnvExists = fs.existsSync(envPath);
@@ -449,7 +438,7 @@ async function run() {
 
   let existingVersion: string | null = null;
   if (existingEnvExists) {
-    const content = fs.readFileSync(envPath, 'utf-8');
+    const content = fs.readFileSync(envPath, "utf-8");
     existingVersion = getExistingEnvVersion(content);
   }
 
@@ -461,12 +450,12 @@ async function run() {
   ) {
     const proceed = await confirm({
       message: pc.green(
-        `${envFileName} is already up-to-date (v${schemaVersion}). Re-run setup?`,
+        `${envFileName} is already up-to-date (v${schemaVersion}). Re-run setup?`
       ),
       default: false,
     });
     if (!proceed) {
-      console.log(pc.gray('Nothing changed.'));
+      console.log(pc.gray("Nothing changed."));
       process.exit(0);
     }
   }
@@ -490,7 +479,7 @@ async function run() {
     if (
       valFromCli !== undefined &&
       valFromCli !== null &&
-      typeof valFromCli === 'string'
+      typeof valFromCli === "string"
     ) {
       finalValues[v.key] = valFromCli;
       summary.fromCli.push(v.key);
@@ -518,8 +507,8 @@ async function run() {
       if (v.required && !currentDefault) {
         console.warn(
           pc.yellow(
-            `  ⚠ [REQUIRED] ${v.key} has no value — set it manually in ${envFileName}`,
-          ),
+            `  ⚠ [REQUIRED] ${v.key} has no value — set it manually in ${envFileName}`
+          )
         );
         summary.requiredMissing.push(v.key);
       }
@@ -539,11 +528,8 @@ async function run() {
 
     let answer: string;
 
-    const isEnum =
-      v.type === 'structured/enum' && v.constraints?.pattern;
-    const enumChoices = isEnum
-      ? parseEnumChoices(v.constraints!.pattern!)
-      : [];
+    const isEnum = v.type === "structured/enum" && v.constraints?.pattern;
+    const enumChoices = isEnum ? parseEnumChoices(v.constraints!.pattern!) : [];
 
     if (enumChoices.length > 0) {
       const choiceValue =
@@ -553,16 +539,16 @@ async function run() {
       answer = await select({
         message:
           `${progress} ${v.key}` +
-          (v.required ? pc.bold(pc.yellow(' REQUIRED')) : ''),
+          (v.required ? pc.bold(pc.yellow(" REQUIRED")) : ""),
         choices: enumChoices.map((c) => ({ name: c, value: c })),
         default: choiceValue,
       });
     } else {
-      const hint = wasAutoGenerated ? pc.dim(' (auto-generated)') : '';
+      const hint = wasAutoGenerated ? pc.dim(" (auto-generated)") : "";
       answer = await input({
         message:
           `${progress} ${v.key}` +
-          (v.required ? pc.bold(pc.yellow(' REQUIRED')) : '') +
+          (v.required ? pc.bold(pc.yellow(" REQUIRED")) : "") +
           hint,
         default: currentDefault,
         validate: (val) => validateValue(val, v) ?? true,
@@ -578,26 +564,20 @@ async function run() {
     else summary.fromDefault.push(v.key);
   }
 
-  const newEnvContent = buildEnvContent(
-    schemaVersion,
-    variables,
-    finalValues,
-  );
+  const newEnvContent = buildEnvContent(schemaVersion, variables, finalValues);
 
   if (options.dryRun) {
-    console.log('');
+    console.log("");
     console.log(
-      pc.bold(
-        pc.cyan(`--- Dry run: ${envFileName} (not written) ---`),
-      ),
+      pc.bold(pc.cyan(`--- Dry run: ${envFileName} (not written) ---`))
     );
     console.log(pc.dim(newEnvContent));
-    console.log(pc.bold(pc.cyan('--- End dry run ---')));
+    console.log(pc.bold(pc.cyan("--- End dry run ---")));
     printSummary(summary, envFileName, schemaVersion);
     return;
   }
 
-  fs.writeFileSync(envPath, newEnvContent, 'utf-8');
+  fs.writeFileSync(envPath, newEnvContent, "utf-8");
   printSummary(summary, envFileName, schemaVersion);
 }
 
@@ -605,20 +585,19 @@ async function run() {
 
 const __filename = fileURLToPath(import.meta.url);
 const isMain =
-  process.argv[1] &&
-  path.resolve(process.argv[1]) === path.resolve(__filename);
+  process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename);
 if (isMain) {
   run().catch((err) => {
     if (
       err &&
-      typeof err === 'object' &&
-      'name' in err &&
-      err.name === 'ExitPromptError'
+      typeof err === "object" &&
+      "name" in err &&
+      err.name === "ExitPromptError"
     ) {
-      console.log(pc.gray('\nCancelled.'));
+      console.log(pc.gray("\nCancelled."));
       process.exit(0);
     }
-    console.error(pc.red('Error:'), err);
+    console.error(pc.red("Error:"), err);
     process.exit(1);
   });
 }

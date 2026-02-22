@@ -1,18 +1,18 @@
-import fs from 'fs';
-import path from 'path';
-import dotenv from 'dotenv';
-import { getSchemaTypes, findSchemaType, type EnvVarSchema } from './schema.js';
-import { detectType } from './validate.js';
+import fs from "fs";
+import path from "path";
+import dotenv from "dotenv";
+import { getSchemaTypes, findSchemaType, type EnvVarSchema } from "./schema.js";
+import { detectType } from "./validate.js";
 
 /**
  * Parse [TYPE: full/name] and [CONSTRAINTS: k=v,k=v] from comment text.
  */
 function parseSchemaMeta(
   comment: string,
-  _key: string,
-): Pick<EnvVarSchema, 'type' | 'constraints'> {
-  const full = comment.replace(/\s+/g, ' ');
-  const out: Pick<EnvVarSchema, 'type' | 'constraints'> = {};
+  _key: string
+): Pick<EnvVarSchema, "type" | "constraints"> {
+  const full = comment.replace(/\s+/g, " ");
+  const out: Pick<EnvVarSchema, "type" | "constraints"> = {};
 
   const validNames = new Set(getSchemaTypes().map((t) => t.name));
   const typeMatch = full.match(/\[TYPE:\s*([^\]]+)\]/i);
@@ -27,9 +27,11 @@ function parseSchemaMeta(
     const constraints: Record<string, string> = {};
     const pairs = raw.split(/,(?=[a-zA-Z_]+=)/);
     for (const pair of pairs) {
-      const eqIdx = pair.indexOf('=');
+      const eqIdx = pair.indexOf("=");
       if (eqIdx > 0) {
-        constraints[pair.substring(0, eqIdx).trim()] = pair.substring(eqIdx + 1).trim();
+        constraints[pair.substring(0, eqIdx).trim()] = pair
+          .substring(eqIdx + 1)
+          .trim();
       }
     }
     if (Object.keys(constraints).length > 0) out.constraints = constraints;
@@ -40,24 +42,25 @@ function parseSchemaMeta(
 
 // ─── File parsing ────────────────────────────────────────────────────────────
 
-export function parseEnvExample(
-  rootDir: string,
-): { version: string | null; variables: EnvVarSchema[] } {
-  const envExamplePath = path.join(rootDir, '.env.example');
+export function parseEnvExample(rootDir: string): {
+  version: string | null;
+  variables: EnvVarSchema[];
+} {
+  const envExamplePath = path.join(rootDir, ".env.example");
   if (!fs.existsSync(envExamplePath)) {
     throw new Error(`.env.example not found at ${envExamplePath}`);
   }
 
-  const content = fs.readFileSync(envExamplePath, 'utf-8');
-  const lines = content.split('\n');
+  const content = fs.readFileSync(envExamplePath, "utf-8");
+  const lines = content.split("\n");
   const variables: EnvVarSchema[] = [];
   let currentComments: string[] = [];
-  let currentGroup = '';
+  let currentGroup = "";
   let version = null;
   let inBannerBlock = false;
-  let bannerGroupName = '';
+  let bannerGroupName = "";
 
-  const buildComment = (comments: string[]): string => comments.join('\n');
+  const buildComment = (comments: string[]): string => comments.join("\n");
 
   for (const line of lines) {
     const trimmed = line.trim();
@@ -65,7 +68,7 @@ export function parseEnvExample(
     if (/^#\s*={5,}\s*$/.test(trimmed)) {
       if (!inBannerBlock) {
         inBannerBlock = true;
-        bannerGroupName = '';
+        bannerGroupName = "";
       } else {
         if (bannerGroupName) {
           currentGroup = bannerGroupName;
@@ -77,21 +80,21 @@ export function parseEnvExample(
     }
 
     if (inBannerBlock) {
-      bannerGroupName = trimmed.replace(/^#\s*/, '').trim();
+      bannerGroupName = trimmed.replace(/^#\s*/, "").trim();
       continue;
     }
 
-    if (trimmed.startsWith('# ENV_SCHEMA_VERSION=')) {
+    if (trimmed.startsWith("# ENV_SCHEMA_VERSION=")) {
       const match = trimmed.match(/# ENV_SCHEMA_VERSION="?([^"]+)"?/);
       if (match) version = match[1];
       continue;
     }
 
-    if (trimmed.startsWith('#')) {
+    if (trimmed.startsWith("#")) {
       const maybeVarMatch = trimmed.match(/^#\s*([A-Z0-9_]+)=(.*)$/);
       if (maybeVarMatch) {
         let val = maybeVarMatch[2].trim();
-        val = val.split(' #')[0].trim();
+        val = val.split(" #")[0].trim();
         if (
           (val.startsWith('"') && val.endsWith('"')) ||
           (val.startsWith("'") && val.endsWith("'"))
@@ -113,7 +116,7 @@ export function parseEnvExample(
         continue;
       }
 
-      currentComments.push(trimmed.replace(/^#\s*/, ''));
+      currentComments.push(trimmed.replace(/^#\s*/, ""));
       continue;
     }
 
@@ -125,7 +128,7 @@ export function parseEnvExample(
     const match = trimmed.match(/^([A-Z0-9_]+)=(.*)$/);
     if (match) {
       let val = match[2].trim();
-      val = val.split(' #')[0].trim();
+      val = val.split(" #")[0].trim();
       if (
         (val.startsWith('"') && val.endsWith('"')) ||
         (val.startsWith("'") && val.endsWith("'"))
@@ -133,8 +136,8 @@ export function parseEnvExample(
         val = val.slice(1, -1);
       }
 
-      const fullComment = currentComments.join(' ');
-      const required = fullComment.toUpperCase().includes('[REQUIRED]');
+      const fullComment = currentComments.join(" ");
+      const required = fullComment.toUpperCase().includes("[REQUIRED]");
       const commentStr = buildComment(currentComments);
       const meta = parseSchemaMeta(commentStr, match[1]);
 
@@ -155,7 +158,7 @@ export function parseEnvExample(
 
   if (variables.some((v) => v.group)) {
     variables.forEach((v) => {
-      if (v.group === undefined || v.group === '') v.group = 'Other';
+      if (v.group === undefined || v.group === "") v.group = "Other";
     });
   }
 
@@ -168,10 +171,10 @@ export function getExistingEnvVersion(content: string): string | null {
 }
 
 export function getExistingEnvVariables(
-  envPath: string,
+  envPath: string
 ): Record<string, string> {
   if (fs.existsSync(envPath)) {
-    const content = fs.readFileSync(envPath, 'utf-8');
+    const content = fs.readFileSync(envPath, "utf-8");
     return dotenv.parse(content);
   }
   return {};
@@ -180,24 +183,26 @@ export function getExistingEnvVariables(
 // ─── Grouping / serialization ────────────────────────────────────────────────
 
 export function getGroup(v: EnvVarSchema): string {
-  return v.group || '';
+  return v.group || "";
 }
 
 function renderGroupBanner(groupName: string): string[] {
   const W = 40;
-  const bar = '# ' + '='.repeat(W);
+  const bar = "# " + "=".repeat(W);
   const padLen = Math.max(1, Math.floor((W - groupName.length) / 2));
-  const center = '#' + ' '.repeat(padLen) + groupName;
+  const center = "#" + " ".repeat(padLen) + groupName;
   return [bar, center, bar];
 }
 
 /** Reorder variables so same-group variables are contiguous. Ungrouped vars become "Other" when any group is used. */
-export function groupVariablesBySection(variables: EnvVarSchema[]): EnvVarSchema[] {
-  const hasAnyGroup = variables.some((v) => getGroup(v) !== '');
+export function groupVariablesBySection(
+  variables: EnvVarSchema[]
+): EnvVarSchema[] {
+  const hasAnyGroup = variables.some((v) => getGroup(v) !== "");
   const groups = new Map<string, EnvVarSchema[]>();
   const groupOrder: string[] = [];
   for (const v of variables) {
-    const group = getGroup(v) || (hasAnyGroup ? 'Other' : '');
+    const group = getGroup(v) || (hasAnyGroup ? "Other" : "");
     if (!groups.has(group)) {
       groups.set(group, []);
       groupOrder.push(group);
@@ -221,35 +226,34 @@ export function dedupeVariables(variables: EnvVarSchema[]): EnvVarSchema[] {
 }
 
 const ENV_FROM_EXAMPLE_CREDIT =
-  '# env-from-example (https://www.npmjs.com/package/env-from-example)';
+  "# env-from-example (https://www.npmjs.com/package/env-from-example)";
 
 export function serializeEnvExample(
   version: string | null,
-  variables: EnvVarSchema[],
+  variables: EnvVarSchema[]
 ): string {
-  const lines: string[] = [ENV_FROM_EXAMPLE_CREDIT, ''];
+  const lines: string[] = [ENV_FROM_EXAMPLE_CREDIT, ""];
   if (version !== null && version !== undefined) {
     lines.push(`# ENV_SCHEMA_VERSION="${version}"`);
-    lines.push('');
+    lines.push("");
   }
   const grouped = groupVariablesBySection(variables);
-  let lastGroup = '';
+  let lastGroup = "";
   for (const v of grouped) {
     const group = getGroup(v);
     if (group && group !== lastGroup) {
-      if (lines.length > 0 && lines[lines.length - 1] !== '') lines.push('');
+      if (lines.length > 0 && lines[lines.length - 1] !== "") lines.push("");
       lines.push(...renderGroupBanner(group));
-      lines.push('');
+      lines.push("");
       lastGroup = group;
     }
-    const commentLines = v.comment.split('\n').filter(Boolean);
+    const commentLines = v.comment.split("\n").filter(Boolean);
     for (const c of commentLines) {
-      lines.push('# ' + c.replace(/^#\s*/, ''));
+      lines.push("# " + c.replace(/^#\s*/, ""));
     }
-    const needsQuotes =
-      /[\s#"']/.test(v.defaultValue) || v.defaultValue === '';
+    const needsQuotes = /[\s#"']/.test(v.defaultValue) || v.defaultValue === "";
     const value =
-      needsQuotes && v.defaultValue !== ''
+      needsQuotes && v.defaultValue !== ""
         ? `"${v.defaultValue.replace(/"/g, '\\"')}"`
         : v.defaultValue;
     if (v.isCommentedOut) {
@@ -257,18 +261,23 @@ export function serializeEnvExample(
     } else {
       lines.push(`${v.key}=${value}`);
     }
-    lines.push('');
+    lines.push("");
   }
-  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd() + '\n';
+  return (
+    lines
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trimEnd() + "\n"
+  );
 }
 
 // ─── Description / comment helpers ───────────────────────────────────────────
 
 export function humanizeEnvKey(key: string): string {
   return key
-    .split('_')
+    .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-    .join(' ');
+    .join(" ");
 }
 
 /**
@@ -277,11 +286,11 @@ export function humanizeEnvKey(key: string): string {
  */
 export function stripMetaFromComment(comment: string): string {
   return comment
-    .replace(/\s*\[REQUIRED\]\s*/gi, ' ')
-    .replace(/\s*\[TYPE:\s*[^\]]+\]\s*/gi, ' ')
-    .replace(/\s*\[CONSTRAINTS:\s*[^\]]+\]\s*/gi, ' ')
-    .replace(/\s*Default:\s*[^\n]+/gi, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(/\s*\[REQUIRED\]\s*/gi, " ")
+    .replace(/\s*\[TYPE:\s*[^\]]+\]\s*/gi, " ")
+    .replace(/\s*\[CONSTRAINTS:\s*[^\]]+\]\s*/gi, " ")
+    .replace(/\s*Default:\s*[^\n]+/gi, " ")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -299,27 +308,31 @@ export function buildCommentLine(parts: {
   defaultValue: string;
 }): string {
   const meta: string[] = [];
-  if (parts.required) meta.push('[REQUIRED]');
+  if (parts.required) meta.push("[REQUIRED]");
   if (parts.type) meta.push(`[TYPE: ${parts.type}]`);
   if (parts.constraints && Object.keys(parts.constraints).length > 0) {
     const constraintsStr = Object.entries(parts.constraints)
       .map(([k, v]) => `${k}=${v}`)
-      .join(',');
+      .join(",");
     meta.push(`[CONSTRAINTS: ${constraintsStr}]`);
   }
   meta.push(
-    parts.defaultValue === '' ? 'Default: (empty)' : `Default: ${parts.defaultValue}`,
+    parts.defaultValue === ""
+      ? "Default: (empty)"
+      : `Default: ${parts.defaultValue}`
   );
-  return parts.description + '\n' + meta.join(' ');
+  return parts.description + "\n" + meta.join(" ");
 }
 
-export function enrichVariablesForPolish(variables: EnvVarSchema[]): EnvVarSchema[] {
+export function enrichVariablesForPolish(
+  variables: EnvVarSchema[]
+): EnvVarSchema[] {
   return variables.map((v) => {
-    const commentLines = v.comment.split('\n').filter(Boolean);
+    const commentLines = v.comment.split("\n").filter(Boolean);
     let description =
       commentLines
-        .find((l) => !l.toUpperCase().includes('[REQUIRED]'))
-        ?.trim() || '';
+        .find((l) => !l.toUpperCase().includes("[REQUIRED]"))
+        ?.trim() || "";
     if (!description) description = humanizeEnvKey(v.key);
 
     const type = v.type || detectType(v.defaultValue, v.key);
@@ -339,21 +352,21 @@ export function enrichVariablesForPolish(variables: EnvVarSchema[]): EnvVarSchem
 
 export function initEnvExample(
   rootDir: string,
-  options: { from?: string } = {},
+  options: { from?: string } = {}
 ): void {
-  const envExamplePath = path.join(rootDir, '.env.example');
+  const envExamplePath = path.join(rootDir, ".env.example");
   if (fs.existsSync(envExamplePath)) {
     throw new Error(
-      `.env.example already exists at ${envExamplePath}. Use --polish to update it.`,
+      `.env.example already exists at ${envExamplePath}. Use --polish to update it.`
     );
   }
 
   let variables: EnvVarSchema[] = [];
-  const sourceFile = options.from || '.env';
+  const sourceFile = options.from || ".env";
   const sourcePath = path.join(rootDir, sourceFile);
 
   if (fs.existsSync(sourcePath)) {
-    const existingVars = dotenv.parse(fs.readFileSync(sourcePath, 'utf-8'));
+    const existingVars = dotenv.parse(fs.readFileSync(sourcePath, "utf-8"));
     for (const [key, value] of Object.entries(existingVars)) {
       const detectedType = detectType(value, key);
       const matchedSchema = detectedType
@@ -368,28 +381,29 @@ export function initEnvExample(
         type: detectedType,
       };
       if (matchedSchema?.auto_generate && !value) {
-        schema.defaultValue = '';
+        schema.defaultValue = "";
       }
       variables.push(schema);
     }
   } else {
     variables = [
       {
-        key: 'NODE_ENV',
-        defaultValue: 'development',
-        comment: 'Node environment',
+        key: "NODE_ENV",
+        defaultValue: "development",
+        comment: "Node environment",
+        type: "structured/enum",
+        constraints: { pattern: "^development|test|staging|production$" },
         required: false,
         isCommentedOut: false,
       },
       {
-        key: 'PORT',
-        defaultValue: '3000',
-        comment:
-          'Server port [TYPE: integer] [CONSTRAINTS: min=1,max=65535]',
-        required: false,
+        key: "PORT",
+        defaultValue: "3000",
+        comment: "Server port",
+        required: true,
         isCommentedOut: false,
-        type: 'integer',
-        constraints: { min: '1', max: '65535' },
+        type: "integer",
+        constraints: { min: "1", max: "65535" },
       },
     ];
   }
@@ -397,20 +411,20 @@ export function initEnvExample(
   const version = getDefaultSchemaVersion(rootDir);
   const enriched = enrichVariablesForPolish(variables);
   const content = serializeEnvExample(version, enriched);
-  fs.writeFileSync(envExamplePath, content, 'utf-8');
+  fs.writeFileSync(envExamplePath, content, "utf-8");
 }
 
 export function getDefaultSchemaVersion(rootDir: string): string {
-  const pkgPath = path.join(rootDir, 'package.json');
+  const pkgPath = path.join(rootDir, "package.json");
   if (fs.existsSync(pkgPath)) {
     try {
-      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8')) as {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8")) as {
         version?: string;
       };
-      if (pkg.version && typeof pkg.version === 'string') return pkg.version;
+      if (pkg.version && typeof pkg.version === "string") return pkg.version;
     } catch {
       /* ignore */
     }
   }
-  return '1.0.0';
+  return "1.0.0";
 }

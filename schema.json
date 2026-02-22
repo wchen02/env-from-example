@@ -9,7 +9,7 @@
       "name": "credentials/private_key_pem",
       "type": "string",
       "pattern": "^-----BEGIN [A-Z ]+KEY-----[\\s\\S]*-----END [A-Z ]+KEY-----$",
-      "description": "PEM private key block. Normalize escaped/newline forms and validate with a PEM/crypto parser at runtime.",
+      "description": "PEM private key (-----BEGIN ... KEY-----).",
       "examples": [
         "-----BEGIN PRIVATE KEY-----\\nMIIEvQIBADANBgkq...\\n-----END PRIVATE KEY-----"
       ],
@@ -20,7 +20,7 @@
       "name": "network/https_url",
       "type": "string",
       "pattern": "^https:\\/\\/[^\\s]+$",
-      "description": "HTTPS-only URL (strict).",
+      "description": "HTTPS URL.",
       "examples": [
         "https://api.example.com",
         "https://hooks.example.com/ingest"
@@ -41,7 +41,7 @@
       "name": "network/uri",
       "type": "string",
       "pattern": "^(?!https?:\\/\\/)[a-zA-Z][a-zA-Z0-9+.\\-]*:\\/\\/.+$",
-      "description": "Non-HTTP service URI (postgres://, redis://, s3://, mongodb+srv://). Explicitly excludes http/https.",
+      "description": "Non-HTTP service URI (e.g. postgres://).",
       "examples": [
         "postgres://user:pass@db:5432/mydb?sslmode=require",
         "redis://:password@redis:6379/0",
@@ -53,7 +53,7 @@
       "name": "network/domain",
       "type": "string",
       "pattern": "^[a-zA-Z0-9\\-]+(\\.[a-zA-Z0-9\\-]+)*\\.[a-zA-Z]{2,}$",
-      "description": "Domain/hostname with TLD.",
+      "description": "Domain or hostname with TLD (e.g. example.com).",
       "examples": ["example.com", "api.bestpos.io"]
     },
 
@@ -61,7 +61,7 @@
       "name": "network/ip",
       "type": "string",
       "pattern": "^(25[0-5]|2[0-4]\\d|1?\\d{1,2})(\\.(25[0-5]|2[0-4]\\d|1?\\d{1,2})){3}$",
-      "description": "IPv4 dotted-decimal address.",
+      "description": "IPv4 dotted-decimal address (e.g. 127.0.0.1).",
       "examples": ["127.0.0.1", "10.0.0.5"],
       "default": "127.0.0.1"
     },
@@ -70,7 +70,7 @@
       "name": "network/ipv6",
       "type": "string",
       "pattern": "^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^(?:[0-9a-fA-F]{1,4}:){1,7}:$|^:(:[0-9a-fA-F]{1,4}){1,7}$|^(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}$",
-      "description": "IPv6 address (common forms, compressed & full). For exhaustive validation use an IPv6 library.",
+      "description": "IPv6 address (compressed or full notation).",
       "examples": ["::1", "fe80::1", "2001:db8::1"],
       "default": "::1"
     },
@@ -79,7 +79,7 @@
       "name": "version/semver",
       "type": "string",
       "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$",
-      "description": "Semantic version (MAJOR.MINOR.PATCH) with optional pre-release/build metadata.",
+      "description": "Semver: MAJOR.MINOR.PATCH + optional suffix.",
       "examples": ["1.2.3", "0.10.0-alpha.1"],
       "default": "0.0.0"
     },
@@ -88,7 +88,7 @@
       "name": "id/uuid",
       "type": "string",
       "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
-      "description": "Canonical UUID (v1–v5) format.",
+      "description": "UUID in canonical form (v1–v5).",
       "examples": ["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
       "auto_generate": "uuidv4"
     },
@@ -97,7 +97,7 @@
       "name": "structured/json",
       "type": "string",
       "pattern": "^\\{[\\s\\S]*\\}$",
-      "description": "JSON-as-string pre-check. **Require** JSON.parse (or equivalent) success at runtime before accepting as structured JSON.",
+      "description": "JSON object as string; validate with parse.",
       "examples": ["{\"ai\":true}", "{\"features\":[\"a\",\"b\"]}"],
       "default": "{}"
     },
@@ -106,7 +106,7 @@
       "name": "structured/key_value_pairs",
       "type": "string",
       "pattern": "^[^=,]+=.+(,[^=,]+=.+)*$",
-      "description": "Comma-separated key=value pairs (small maps). Loader should split and convert to object at runtime.",
+      "description": "Comma-separated key=value pairs.",
       "examples": ["env=prod,region=us-east-1", "tier=premium,plan=annual"]
     },
 
@@ -114,7 +114,7 @@
       "name": "locale/langtag",
       "type": "string",
       "pattern": "^[a-zA-Z]{2,3}(?:-[a-zA-Z]{2,4})?(?:-[A-Za-z0-9-]+)*$",
-      "description": "Conservative BCP-47-like language tag (common cases). Prefer explicit enum for strict apps.",
+      "description": "BCP-47 language tag (e.g. en, en-US).",
       "examples": ["en", "en-US", "zh-Hant-TW"],
       "default": "en-US"
     },
@@ -123,7 +123,7 @@
       "name": "structured/email_list",
       "type": "string",
       "pattern": "^[^\\s,@]+@[^\\s,@]+\\.[^\\s,@]+(?:,[^\\s,@]+@[^\\s,@]+\\.[^\\s,@]+)+$",
-      "description": "Comma-separated list of emails (requires at least one comma). Loader should split & validate each email at runtime.",
+      "description": "Comma-separated email list; validate each.",
       "examples": ["a@example.com,b@x.org"]
     },
 
@@ -131,7 +131,7 @@
       "name": "structured/csv",
       "type": "string",
       "pattern": "^[^,]+(,[^,]+)+$",
-      "description": "Comma-separated values stored as a single env string. Requires at least one comma to avoid single-token collisions.",
+      "description": "Comma-separated list (2+ values).",
       "examples": ["a,b,c", "one,two"]
     },
 
@@ -139,7 +139,7 @@
       "name": "file/windows_path",
       "type": "string",
       "pattern": "^[a-zA-Z]:\\\\(?:[^<>:\\\"/\\\\|?*\\r\\n]+\\\\)*[^<>:\\\"/\\\\|?*\\r\\n]*$",
-      "description": "Windows absolute path (drive letter + backslashes). Place before POSIX file path detection so Windows values don't fall through.",
+      "description": "Windows absolute path (e.g. C:\\dir\\file).",
       "examples": ["C:\\Program Files\\App\\config.yml", "C:\\temp\\file.txt"]
     },
 
@@ -147,7 +147,7 @@
       "name": "file/path",
       "type": "string",
       "pattern": "^(?!\\s*$)(\\.?\\.?\\/)?([^\\/\\0]+\\/)*[^\\/\\0]+$",
-      "description": "POSIX-friendly file or directory path (relative or absolute). For Windows paths use file/windows_path.",
+      "description": "POSIX path (relative or absolute).",
       "examples": [
         "./config.yml",
         "/var/app/secrets.json",
@@ -159,7 +159,7 @@
       "name": "temporal/cron",
       "type": "string",
       "pattern": "^([\\d\\*/,-]+\\s){4}[\\d\\*/,-]+$",
-      "description": "5-field cron expression sanity check; validate with a cron parser at runtime.",
+      "description": "Five-field cron (min hour day month dow).",
       "examples": ["0 3 1 * *", "*/15 * * * *"],
       "default": "0 0 * * *"
     },
@@ -168,7 +168,7 @@
       "name": "temporal/time_hhmm",
       "type": "string",
       "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
-      "description": "24-hour time formatted HH:MM.",
+      "description": "Time in 24-hour format (HH:MM).",
       "examples": ["03:00", "23:59"],
       "default": "00:00"
     },
@@ -177,7 +177,7 @@
       "name": "temporal/duration",
       "type": "string",
       "pattern": "^\\d+(ms|s|m|h|d)$",
-      "description": "Human-readable duration like '30s', '5m', '1h', '7d'.",
+      "description": "Duration with unit (e.g. 30s, 5m, 1h, 7d).",
       "examples": ["30s", "7d", "1h"],
       "default": "1h"
     },
@@ -186,7 +186,7 @@
       "name": "credentials/secret",
       "type": "string",
       "minLength": 16,
-      "description": "API key / token / secret. Avoid relying on regex only; runtime entropy checks or field-specific validators reduce false positives.",
+      "description": "API key, token, or secret (min length).",
       "examples": ["sk_live_4f3b2a1c...", "superlongrandomsecretvalue"],
       "auto_generate": "random_secret_32",
       "constraints": {
@@ -199,7 +199,7 @@
       "name": "visual/hex_color",
       "type": "string",
       "pattern": "^#(?:[A-Fa-f0-9]{3}|[A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$",
-      "description": "Hex color (#RGB, #RRGGBB, #RRGGBBAA). Low collision risk; place before final string fallback.",
+      "description": "Hex color (#RGB, #RRGGBB, #RRGGBBAA).",
       "examples": ["#fff", "#aabbcc", "#AABBCCFF"],
       "default": "#ffffff"
     },
@@ -207,7 +207,8 @@
     {
       "name": "structured/enum",
       "type": "string",
-      "description": "Enumerated value from a fixed set. Use [CONSTRAINTS: pattern=^(opt1|opt2|...)$] to define valid options.",
+      "pattern": "^([a-zA-Z\\-_]*)$",
+      "description": "Value from a predefined set of options.",
       "examples": ["debug", "info", "production"],
       "constraints": {
         "pattern": "new RegExp(pattern).test(value) // pattern should be ^(opt1|opt2|...)$ with valid options"
@@ -217,7 +218,7 @@
     {
       "name": "float",
       "type": "number",
-      "description": "Floating-point fallback (detect via parseFloat when reached).",
+      "description": "Floating-point number.",
       "examples": [0.0, 3.1415],
       "constraints": {
         "min": "value >= min",
@@ -230,7 +231,7 @@
     {
       "name": "integer",
       "type": "integer",
-      "description": "Generic integer fallback (detect via parseInt when reached).",
+      "description": "Integer.",
       "examples": [0, 1, 42],
       "constraints": {
         "min": "value >= min",
@@ -242,7 +243,7 @@
     {
       "name": "boolean",
       "type": "boolean",
-      "description": "Boolean fallback after coercion of common textual forms (true,false,1,0,yes,no).",
+      "description": "Boolean (true/false, 1/0, yes/no).",
       "examples": [true, false],
       "default": false
     },
@@ -250,8 +251,8 @@
     {
       "name": "string",
       "type": "string",
-      "description": "Final fallback string.",
-      "examples": ["TableQ", "my-app", "free text"],
+      "description": "Arbitrary string.",
+      "examples": ["Copyright 2026", "my-app", "free text"],
       "constraints": {
         "minLength": "value.length >= minLength",
         "maxLength": "value.length <= maxLength",
