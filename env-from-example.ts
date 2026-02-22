@@ -19,7 +19,7 @@ export interface SchemaType {
   default?: string | number | boolean;
   auto_generate?: string;
   minLength?: number;
-  methods?: Record<string, string>;
+  constraints?: Record<string, string>;
 }
 
 export interface EnvSchema {
@@ -68,13 +68,13 @@ export function parseEnumChoices(pattern: string): string[] {
 
 /**
  * Return the available method descriptors for a type.
- * If the type itself defines methods, use those.
- * Otherwise, fall back to the methods of the corresponding primitive type.
+ * If the type itself defines constraints, use those.
+ * Otherwise, fall back to the constraints of the corresponding primitive type.
  */
-export function getAvailableMethods(typeName: string): Record<string, string> {
+export function getAvailableConstraints(typeName: string): Record<string, string> {
   const st = findSchemaType(typeName);
   if (!st) return {};
-  if (st.methods) return st.methods;
+  if (st.constraints) return st.constraints;
   const baseName: Record<string, string> = {
     number: 'float',
     integer: 'integer',
@@ -84,7 +84,7 @@ export function getAvailableMethods(typeName: string): Record<string, string> {
   const base = baseName[st.type];
   if (base) {
     const bt = findSchemaType(base);
-    return bt?.methods || {};
+    return bt?.constraints || {};
   }
   return {};
 }
@@ -110,22 +110,22 @@ export interface EnvVarSchema {
   isCommentedOut: boolean;
   /** Full schema type name, e.g. "network/url", "integer", "credentials/secret". */
   type?: string;
-  /** Constraint values parsed from [METHODS: k=v,...] in comment. */
-  methods?: Record<string, string>;
+  /** Constraint values parsed from [CONSTRAINTS: k=v,...] in comment. */
+  constraints?: Record<string, string>;
 }
 
 // ─── Comment parsing ─────────────────────────────────────────────────────────
 
 /**
- * Parse [TYPE: full/name] and [METHODS: k=v,k=v] from comment text.
+ * Parse [TYPE: full/name] and [CONSTRAINTS: k=v,k=v] from comment text.
  * Also parses [REQUIRED] (handled separately in caller).
  */
 function parseSchemaMeta(
   comment: string,
   _key: string,
-): Pick<EnvVarSchema, 'type' | 'methods'> {
+): Pick<EnvVarSchema, 'type' | 'constraints'> {
   const full = comment.replace(/\s+/g, ' ');
-  const out: Pick<EnvVarSchema, 'type' | 'methods'> = {};
+  const out: Pick<EnvVarSchema, 'type' | 'constraints'> = {};
 
   const validNames = new Set(getSchemaTypes().map((t) => t.name));
   const typeMatch = full.match(/\[TYPE:\s*([^\]]+)\]/i);
@@ -134,18 +134,18 @@ function parseSchemaMeta(
     if (validNames.has(t)) out.type = t;
   }
 
-  const methodsMatch = full.match(/\[METHODS:\s*([^\]]+)\]/i);
-  if (methodsMatch) {
-    const raw = methodsMatch[1].trim();
-    const methods: Record<string, string> = {};
+  const constraintsMatch = full.match(/\[CONSTRAINTS:\s*([^\]]+)\]/i);
+  if (constraintsMatch) {
+    const raw = constraintsMatch[1].trim();
+    const constraints: Record<string, string> = {};
     const pairs = raw.split(/,(?=[a-zA-Z_]+=)/);
     for (const pair of pairs) {
       const eqIdx = pair.indexOf('=');
       if (eqIdx > 0) {
-        methods[pair.substring(0, eqIdx).trim()] = pair.substring(eqIdx + 1).trim();
+        constraints[pair.substring(0, eqIdx).trim()] = pair.substring(eqIdx + 1).trim();
       }
     }
-    if (Object.keys(methods).length > 0) out.methods = methods;
+    if (Object.keys(constraints).length > 0) out.constraints = constraints;
   }
 
   return out;
@@ -349,7 +349,7 @@ function humanizeEnvKey(key: string): string {
 }
 
 /**
- * Strip [REQUIRED], [TYPE: ...], [METHODS: ...], Default: ... from comment
+ * Strip [REQUIRED], [TYPE: ...], [CONSTRAINTS: ...], Default: ... from comment
  * to get the plain description text.
  */
 function stripMetaFromComment(comment: string): string {
@@ -357,7 +357,7 @@ function stripMetaFromComment(comment: string): string {
     .replace(/^.*------.*$/gm, '')
     .replace(/\s*\[REQUIRED\]\s*/gi, ' ')
     .replace(/\s*\[TYPE:\s*[^\]]+\]\s*/gi, ' ')
-    .replace(/\s*\[METHODS:\s*[^\]]+\]\s*/gi, ' ')
+    .replace(/\s*\[CONSTRAINTS:\s*[^\]]+\]\s*/gi, ' ')
     .replace(/\s*Default:\s*[^\n]+/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -490,17 +490,17 @@ function buildCommentLine(parts: {
   description: string;
   required: boolean;
   type?: string;
-  methods?: Record<string, string>;
+  constraints?: Record<string, string>;
   defaultValue: string;
 }): string {
   const meta: string[] = [];
   if (parts.required) meta.push('[REQUIRED]');
   if (parts.type) meta.push(`[TYPE: ${parts.type}]`);
-  if (parts.methods && Object.keys(parts.methods).length > 0) {
-    const methodsStr = Object.entries(parts.methods)
+  if (parts.constraints && Object.keys(parts.constraints).length > 0) {
+    const constraintsStr = Object.entries(parts.constraints)
       .map(([k, v]) => `${k}=${v}`)
       .join(',');
-    meta.push(`[METHODS: ${methodsStr}]`);
+    meta.push(`[CONSTRAINTS: ${constraintsStr}]`);
   }
   meta.push(
     parts.defaultValue === '' ? 'Default: (empty)' : `Default: ${parts.defaultValue}`,
@@ -528,7 +528,7 @@ function enrichVariablesForPolish(variables: EnvVarSchema[]): EnvVarSchema[] {
       description,
       required: v.required,
       type,
-      methods: v.methods,
+      constraints: v.constraints,
       defaultValue: v.defaultValue,
     });
     const newComment = [sectionHeader, line].filter(Boolean).join('\n');
@@ -580,7 +580,7 @@ function printVariableSummary(
     type: string | undefined;
     typeSource: string;
     schemaType: SchemaType | undefined;
-    methods: Record<string, string>;
+    constraints: Record<string, string>;
     required: boolean;
     reqSource: string;
     defaultValue: string;
@@ -626,21 +626,21 @@ function printVariableSummary(
     row('Examples', pc.dim(short), '');
   }
 
-  if (fields.type === 'structured/enum' && fields.methods.pattern) {
-    const choices = parseEnumChoices(fields.methods.pattern);
+  if (fields.type === 'structured/enum' && fields.constraints.pattern) {
+    const choices = parseEnumChoices(fields.constraints.pattern);
     if (choices.length > 0) {
       row('Choices', choices.join(pc.dim(' | ')), '');
     }
   }
 
-  const methodEntries = Object.entries(fields.methods).filter(([k]) => {
+  const methodEntries = Object.entries(fields.constraints).filter(([k]) => {
     if (k === 'pattern' && fields.type !== 'string') return false;
     if (k === 'pattern' && fields.type === 'structured/enum') return false;
     return true;
   });
   if (methodEntries.length > 0) {
     const mStr = methodEntries.map(([k, v]) => `${k}=${v}`).join(', ');
-    row('Constraints', pc.white(mStr), 'from [METHODS]');
+    row('Constraints', pc.white(mStr), 'from [CONSTRAINTS]');
   }
 
   row(
@@ -717,8 +717,8 @@ export async function polishEnvExampleInteractive(
     let required = v.required;
     let reqSource = v.required ? 'from [REQUIRED] tag' : '';
 
-    let methods: Record<string, string> = v.methods
-      ? { ...v.methods }
+    let constraints: Record<string, string> = v.constraints
+      ? { ...v.constraints }
       : {};
 
     let defaultValue = v.defaultValue;
@@ -731,15 +731,17 @@ export async function polishEnvExampleInteractive(
         type,
         typeSource,
         schemaType,
-        methods,
+        constraints,
         required,
         reqSource,
         defaultValue,
         group,
       });
 
-      const availableMethods = type ? getAvailableMethods(type) : {};
-      const typeHasOwnMethods = type ? !!findSchemaType(type)?.methods : false;
+      const availableConstraints = type ? getAvailableConstraints(type) : {};
+      const methodEntries = Object.entries(availableConstraints).filter(
+        ([mKey]) => !(type === 'structured/enum' && mKey === 'pattern'),
+      );
 
       const actionChoices: { name: string; value: string }[] = [
         { name: pc.green('Accept'), value: 'accept' },
@@ -749,11 +751,12 @@ export async function polishEnvExampleInteractive(
         { name: required ? 'Mark as optional' : 'Mark as required', value: 'edit_required' },
         { name: 'Edit group', value: 'edit_group' },
       ];
-      if (typeHasOwnMethods) {
-        actionChoices.push({
-          name: 'Edit methods/constraints',
-          value: 'edit_methods',
-        });
+      for (const [mKey] of methodEntries) {
+        const current = constraints[mKey];
+        const label = current
+          ? `Set ${mKey} ${pc.dim(`(${current})`)}`
+          : `Set ${mKey}`;
+        actionChoices.push({ name: label, value: `set_method:${mKey}` });
       }
 
       const action = await select({
@@ -819,8 +822,8 @@ export async function polishEnvExampleInteractive(
         }
 
         if (newType === 'structured/enum') {
-          const currentChoices = methods.pattern
-            ? parseEnumChoices(methods.pattern)
+          const currentChoices = constraints.pattern
+            ? parseEnumChoices(constraints.pattern)
             : [];
           const choicesStr = await input({
             message:
@@ -833,16 +836,16 @@ export async function polishEnvExampleInteractive(
             .split(/[|,]/)
             .map((s) => s.trim())
             .filter(Boolean);
-          methods = { pattern: `^(${values.join('|')})$` };
+          constraints = { pattern: `^(${values.join('|')})$` };
         } else if (newType) {
-          const newAvailable = getAvailableMethods(newType);
+          const newAvailable = getAvailableConstraints(newType);
           const cleaned: Record<string, string> = {};
-          for (const [k, val] of Object.entries(methods)) {
+          for (const [k, val] of Object.entries(constraints)) {
             if (k in newAvailable) cleaned[k] = val;
           }
-          methods = cleaned;
+          constraints = cleaned;
         } else {
-          methods = {};
+          constraints = {};
         }
 
         type = newType || undefined;
@@ -904,36 +907,28 @@ export async function polishEnvExampleInteractive(
         } else {
           group = picked;
         }
-      } else if (action === 'edit_methods') {
-        for (const [mKey, mDesc] of Object.entries(availableMethods)) {
-          if (type === 'structured/enum' && mKey === 'pattern') continue;
-
-          if (type === 'string' && mKey === 'pattern') {
-            const wantsPattern = await confirm({
-              message: 'Add/edit a custom validation pattern?',
-              default: !!methods.pattern,
-            });
-            if (wantsPattern) {
-              const patternStr = await input({
-                message: 'Pattern (regex, e.g. ^[a-z0-9-]+$)',
-                default: methods.pattern || '',
-              });
-              if (patternStr.trim()) methods.pattern = patternStr.trim();
-            } else {
-              delete methods.pattern;
-            }
-            continue;
+      } else if (action.startsWith('set_method:')) {
+        const mKey = action.slice('set_method:'.length);
+        if (mKey === 'pattern') {
+          const patternStr = await input({
+            message: 'Pattern (regex, e.g. ^[a-z0-9-]+$) [empty to clear]',
+            default: constraints.pattern || '',
+          });
+          if (patternStr.trim()) {
+            constraints.pattern = patternStr.trim();
+          } else {
+            delete constraints.pattern;
           }
-
-          const current = methods[mKey] || '';
+        } else {
+          const current = constraints[mKey] || '';
           const val = await input({
-            message: `${mKey} (${mDesc}) [empty to clear]`,
+            message: `${mKey} [empty to clear]`,
             default: current,
           });
           if (val.trim()) {
-            methods[mKey] = val.trim();
+            constraints[mKey] = val.trim();
           } else {
-            delete methods[mKey];
+            delete constraints[mKey];
           }
         }
       }
@@ -943,7 +938,7 @@ export async function polishEnvExampleInteractive(
       description,
       required,
       type,
-      methods: Object.keys(methods).length > 0 ? methods : undefined,
+      constraints: Object.keys(constraints).length > 0 ? constraints : undefined,
       defaultValue,
     });
     const sectionHeader = group ? buildSectionHeader(group) : undefined;
@@ -956,7 +951,7 @@ export async function polishEnvExampleInteractive(
       defaultValue,
       required,
       type,
-      methods: Object.keys(methods).length > 0 ? methods : undefined,
+      constraints: Object.keys(constraints).length > 0 ? constraints : undefined,
     });
   }
 
@@ -1090,18 +1085,18 @@ export function validateValue(
   const st = findSchemaType(v.type);
   if (!st) return null;
 
-  // structured/enum with methods.pattern
-  if (v.type === 'structured/enum' && v.methods?.pattern) {
+  // structured/enum with constraints.pattern
+  if (v.type === 'structured/enum' && v.constraints?.pattern) {
     try {
-      if (!new RegExp(v.methods.pattern).test(trimmed)) {
-        const choices = parseEnumChoices(v.methods.pattern);
+      if (!new RegExp(v.constraints.pattern).test(trimmed)) {
+        const choices = parseEnumChoices(v.constraints.pattern);
         if (choices.length > 0) {
           return `${v.key} must be one of: ${choices.join(', ')}`;
         }
-        return `${v.key} must match pattern ${v.methods.pattern}`;
+        return `${v.key} must match pattern ${v.constraints.pattern}`;
       }
     } catch {
-      return `${v.key} has an invalid enum pattern: ${v.methods.pattern}`;
+      return `${v.key} has an invalid enum pattern: ${v.constraints.pattern}`;
     }
     return null;
   }
@@ -1130,11 +1125,11 @@ export function validateValue(
   if (st.type === 'number' || st.name === 'float') {
     const n = Number(trimmed);
     if (isNaN(n)) return `${v.key} must be a number.`;
-    const m = v.methods || {};
-    if (m.minimum !== undefined && n < Number(m.minimum))
-      return `${v.key} must be >= ${m.minimum}.`;
-    if (m.maximum !== undefined && n > Number(m.maximum))
-      return `${v.key} must be <= ${m.maximum}.`;
+    const m = v.constraints || {};
+    if (m.min !== undefined && n < Number(m.min))
+      return `${v.key} must be >= ${m.min}.`;
+    if (m.max !== undefined && n > Number(m.max))
+      return `${v.key} must be <= ${m.max}.`;
     if (m.precision !== undefined) {
       const prec = Number(m.precision);
       const decPart = trimmed.split('.')[1];
@@ -1148,11 +1143,11 @@ export function validateValue(
     const n = Number(trimmed);
     if (isNaN(n) || Math.floor(n) !== n)
       return `${v.key} must be an integer.`;
-    const m = v.methods || {};
-    if (m.minimum !== undefined && n < Number(m.minimum))
-      return `${v.key} must be >= ${m.minimum}.`;
-    if (m.maximum !== undefined && n > Number(m.maximum))
-      return `${v.key} must be <= ${m.maximum}.`;
+    const m = v.constraints || {};
+    if (m.min !== undefined && n < Number(m.min))
+      return `${v.key} must be >= ${m.min}.`;
+    if (m.max !== undefined && n > Number(m.max))
+      return `${v.key} must be <= ${m.max}.`;
   }
 
   if (st.type === 'boolean' || st.name === 'boolean') {
@@ -1166,9 +1161,9 @@ export function validateValue(
     return `${v.key} must be at least ${st.minLength} characters.`;
   }
 
-  // String-type methods constraints
+  // String-type constraints constraints
   if (st.type === 'string') {
-    const m = v.methods || {};
+    const m = v.constraints || {};
     if (m.minLength !== undefined && trimmed.length < Number(m.minLength))
       return `${v.key} must be at least ${m.minLength} characters.`;
     if (m.maxLength !== undefined && trimmed.length > Number(m.maxLength))
@@ -1280,11 +1275,11 @@ export function initEnvExample(
         key: 'PORT',
         defaultValue: '3000',
         comment:
-          'Server port [TYPE: integer] [METHODS: minimum=1,maximum=65535]',
+          'Server port [TYPE: integer] [CONSTRAINTS: min=1,max=65535]',
         required: false,
         isCommentedOut: false,
         type: 'integer',
-        methods: { minimum: '1', maximum: '65535' },
+        constraints: { min: '1', max: '65535' },
       },
     ];
   }
@@ -1765,9 +1760,9 @@ async function run() {
     let answer: string;
 
     const isEnum =
-      v.type === 'structured/enum' && v.methods?.pattern;
+      v.type === 'structured/enum' && v.constraints?.pattern;
     const enumChoices = isEnum
-      ? parseEnumChoices(v.methods!.pattern!)
+      ? parseEnumChoices(v.constraints!.pattern!)
       : [];
 
     if (enumChoices.length > 0) {

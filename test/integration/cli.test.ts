@@ -391,7 +391,7 @@ describe('CLI integration', () => {
     fs.mkdirSync(tmpDir, { recursive: true });
     fs.writeFileSync(
       envExamplePath,
-      '# Log level [TYPE: structured/enum] [METHODS: pattern=^(debug|info|warn|error)$]\nLOG_LEVEL=info\n',
+      '# Log level [TYPE: structured/enum] [CONSTRAINTS: pattern=^(debug|info|warn|error)$]\nLOG_LEVEL=info\n',
       'utf-8',
     );
     fs.writeFileSync(envPath, 'LOG_LEVEL=debug\n', 'utf-8');
@@ -420,7 +420,7 @@ describe('CLI integration', () => {
     fs.mkdirSync(tmpDir, { recursive: true });
     fs.writeFileSync(
       envExamplePath,
-      '# Log level [TYPE: structured/enum] [METHODS: pattern=^(debug|info|warn|error)$]\nLOG_LEVEL=info\n',
+      '# Log level [TYPE: structured/enum] [CONSTRAINTS: pattern=^(debug|info|warn|error)$]\nLOG_LEVEL=info\n',
       'utf-8',
     );
     fs.writeFileSync(envPath, 'LOG_LEVEL=verbose\n', 'utf-8');
@@ -442,13 +442,13 @@ describe('CLI integration', () => {
     }
   });
 
-  it('--polish -y preserves [TYPE] and [METHODS] annotations', () => {
-    const tmpDir = path.join(FIXTURES_DIR, '..', 'fixtures-methods-polish');
+  it('--polish -y preserves [TYPE] and [CONSTRAINTS] annotations', () => {
+    const tmpDir = path.join(FIXTURES_DIR, '..', 'fixtures-constraints-polish');
     const envExamplePath = path.join(tmpDir, '.env.example');
     fs.mkdirSync(tmpDir, { recursive: true });
     fs.writeFileSync(
       envExamplePath,
-      '# Server port [TYPE: integer] [METHODS: minimum=1,maximum=65535]\nPORT=3000\n',
+      '# Server port [TYPE: integer] [CONSTRAINTS: min=1,max=65535]\nPORT=3000\n',
       'utf-8',
     );
     try {
@@ -459,7 +459,7 @@ describe('CLI integration', () => {
       expect(result.status).toBe(0);
       const after = fs.readFileSync(envExamplePath, 'utf-8');
       expect(after).toMatch(/\[TYPE: integer\]/);
-      expect(after).toMatch(/\[METHODS: minimum=1,maximum=65535\]/);
+      expect(after).toMatch(/\[CONSTRAINTS: min=1,max=65535\]/);
       expect(after).toMatch(/PORT=3000/);
     } finally {
       try {
@@ -471,14 +471,14 @@ describe('CLI integration', () => {
     }
   });
 
-  it('--validate with integer methods constraints', () => {
-    const tmpDir = path.join(FIXTURES_DIR, '..', 'fixtures-int-methods');
+  it('--validate with integer constraints constraints', () => {
+    const tmpDir = path.join(FIXTURES_DIR, '..', 'fixtures-int-constraints');
     const envExamplePath = path.join(tmpDir, '.env.example');
     const envPath = path.join(tmpDir, '.env');
     fs.mkdirSync(tmpDir, { recursive: true });
     fs.writeFileSync(
       envExamplePath,
-      '# Port [TYPE: integer] [METHODS: minimum=1,maximum=65535]\nPORT=3000\n',
+      '# Port [TYPE: integer] [CONSTRAINTS: min=1,max=65535]\nPORT=3000\n',
       'utf-8',
     );
     fs.writeFileSync(envPath, 'PORT=8080\n', 'utf-8');
@@ -499,14 +499,14 @@ describe('CLI integration', () => {
     }
   });
 
-  it('--validate fails for integer outside methods bounds', () => {
+  it('--validate fails for integer outside constraints bounds', () => {
     const tmpDir = path.join(FIXTURES_DIR, '..', 'fixtures-int-oob');
     const envExamplePath = path.join(tmpDir, '.env.example');
     const envPath = path.join(tmpDir, '.env');
     fs.mkdirSync(tmpDir, { recursive: true });
     fs.writeFileSync(
       envExamplePath,
-      '# Port [TYPE: integer] [METHODS: minimum=1,maximum=65535]\nPORT=3000\n',
+      '# Port [TYPE: integer] [CONSTRAINTS: min=1,max=65535]\nPORT=3000\n',
       'utf-8',
     );
     fs.writeFileSync(envPath, 'PORT=0\n', 'utf-8');

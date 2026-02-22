@@ -189,7 +189,7 @@
       "description": "API key / token / secret. Avoid relying on regex only; runtime entropy checks or field-specific validators reduce false positives.",
       "examples": ["sk_live_4f3b2a1c...", "superlongrandomsecretvalue"],
       "auto_generate": "random_secret_32",
-      "methods": {
+      "constraints": {
         "minLength": "value.length >= minLength",
         "maxLength": "value.length <= maxLength"
       }
@@ -207,9 +207,9 @@
     {
       "name": "structured/enum",
       "type": "string",
-      "description": "Enumerated value from a fixed set. Use [METHODS: pattern=^(opt1|opt2|...)$] to define valid options.",
+      "description": "Enumerated value from a fixed set. Use [CONSTRAINTS: pattern=^(opt1|opt2|...)$] to define valid options.",
       "examples": ["debug", "info", "production"],
-      "methods": {
+      "constraints": {
         "pattern": "new RegExp(pattern).test(value) // pattern should be ^(opt1|opt2|...)$ with valid options"
       }
     },
@@ -219,9 +219,9 @@
       "type": "number",
       "description": "Floating-point fallback (detect via parseFloat when reached).",
       "examples": [0.0, 3.1415],
-      "methods": {
-        "minimum": "value >= minimum",
-        "maximum": "value <= maximum",
+      "constraints": {
+        "min": "value >= min",
+        "max": "value <= max",
         "precision": "limit decimal places (e.g. toFixed or check rounded equality)"
       },
       "default": 0.0
@@ -232,9 +232,9 @@
       "type": "integer",
       "description": "Generic integer fallback (detect via parseInt when reached).",
       "examples": [0, 1, 42],
-      "methods": {
-        "minimum": "value >= minimum",
-        "maximum": "value <= maximum"
+      "constraints": {
+        "min": "value >= min",
+        "max": "value <= max"
       },
       "default": 0
     },
@@ -252,7 +252,7 @@
       "type": "string",
       "description": "Final fallback string.",
       "examples": ["TableQ", "my-app", "free text"],
-      "methods": {
+      "constraints": {
         "minLength": "value.length >= minLength",
         "maxLength": "value.length <= maxLength",
         "pattern": "new RegExp(pattern).test(value)  // pattern should be a valid JS/PCRE regex string"

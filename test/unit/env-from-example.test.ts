@@ -18,7 +18,7 @@ import {
   detectType,
   parseEnumChoices,
   findSchemaType,
-  getAvailableMethods,
+  getAvailableConstraints,
   inferDescription,
   loadSchema,
   type EnvVarSchema,
@@ -353,21 +353,21 @@ describe('updateEnvSchemaVersion', () => {
   });
 });
 
-describe('parseEnvExample schema meta (type, methods)', () => {
-  it('parses [TYPE], [METHODS] from comments', () => {
+describe('parseEnvExample schema meta (type, constraints)', () => {
+  it('parses [TYPE], [CONSTRAINTS] from comments', () => {
     const rootDir = path.join(FIXTURES_DIR, 'schema-meta');
     const { variables } = parseEnvExample(rootDir);
 
     const logLevel = variables.find((v) => v.key === 'LOG_LEVEL')!;
     expect(logLevel.type).toBe('structured/enum');
-    expect(logLevel.methods).toEqual({
+    expect(logLevel.constraints).toEqual({
       pattern: '^(debug|info|warn|error)$',
     });
     expect(logLevel.defaultValue).toBe('info');
 
     const port = variables.find((v) => v.key === 'PORT')!;
     expect(port.type).toBe('integer');
-    expect(port.methods).toEqual({ minimum: '1', maximum: '65535' });
+    expect(port.constraints).toEqual({ min: '1', max: '65535' });
 
     const featureX = variables.find((v) => v.key === 'FEATURE_X')!;
     expect(featureX.type).toBe('boolean');
@@ -545,42 +545,42 @@ describe('findSchemaType', () => {
   });
 });
 
-describe('getAvailableMethods', () => {
-  it('returns methods for integer type', () => {
-    const methods = getAvailableMethods('integer');
-    expect(methods).toHaveProperty('minimum');
-    expect(methods).toHaveProperty('maximum');
+describe('getAvailableConstraints', () => {
+  it('returns constraints for integer type', () => {
+    const constraints = getAvailableConstraints('integer');
+    expect(constraints).toHaveProperty('min');
+    expect(constraints).toHaveProperty('max');
   });
 
-  it('returns methods for float type', () => {
-    const methods = getAvailableMethods('float');
-    expect(methods).toHaveProperty('minimum');
-    expect(methods).toHaveProperty('maximum');
-    expect(methods).toHaveProperty('precision');
+  it('returns constraints for float type', () => {
+    const constraints = getAvailableConstraints('float');
+    expect(constraints).toHaveProperty('min');
+    expect(constraints).toHaveProperty('max');
+    expect(constraints).toHaveProperty('precision');
   });
 
-  it('returns string methods for string type', () => {
-    const methods = getAvailableMethods('string');
-    expect(methods).toHaveProperty('minLength');
-    expect(methods).toHaveProperty('maxLength');
-    expect(methods).toHaveProperty('pattern');
+  it('returns string constraints for string type', () => {
+    const constraints = getAvailableConstraints('string');
+    expect(constraints).toHaveProperty('minLength');
+    expect(constraints).toHaveProperty('maxLength');
+    expect(constraints).toHaveProperty('pattern');
   });
 
-  it('inherits string methods for string sub-types', () => {
-    const methods = getAvailableMethods('network/url');
-    expect(methods).toHaveProperty('minLength');
-    expect(methods).toHaveProperty('maxLength');
-    expect(methods).toHaveProperty('pattern');
+  it('inherits string constraints for string sub-types', () => {
+    const constraints = getAvailableConstraints('network/url');
+    expect(constraints).toHaveProperty('minLength');
+    expect(constraints).toHaveProperty('maxLength');
+    expect(constraints).toHaveProperty('pattern');
   });
 
   it('returns empty for boolean type', () => {
-    const methods = getAvailableMethods('boolean');
-    expect(Object.keys(methods)).toHaveLength(0);
+    const constraints = getAvailableConstraints('boolean');
+    expect(Object.keys(constraints)).toHaveLength(0);
   });
 
-  it('returns own methods for structured/enum', () => {
-    const methods = getAvailableMethods('structured/enum');
-    expect(methods).toHaveProperty('pattern');
+  it('returns own constraints for structured/enum', () => {
+    const constraints = getAvailableConstraints('structured/enum');
+    expect(constraints).toHaveProperty('pattern');
   });
 });
 
@@ -633,7 +633,7 @@ describe('validateValue', () => {
     expect(validateValue('', v)).toBeNull();
   });
 
-  it('validates structured/enum against methods pattern', () => {
+  it('validates structured/enum against constraints pattern', () => {
     const v: EnvVarSchema = {
       key: 'L',
       defaultValue: 'info',
@@ -641,7 +641,7 @@ describe('validateValue', () => {
       required: false,
       isCommentedOut: false,
       type: 'structured/enum',
-      methods: { pattern: '^(debug|info|warn|error)$' },
+      constraints: { pattern: '^(debug|info|warn|error)$' },
     };
     expect(validateValue('info', v)).toBeNull();
     expect(validateValue('debug', v)).toBeNull();
@@ -662,7 +662,7 @@ describe('validateValue', () => {
     expect(validateValue('abc', v)).toMatch(/integer/);
   });
 
-  it('validates integer with methods constraints', () => {
+  it('validates integer with constraints constraints', () => {
     const v: EnvVarSchema = {
       key: 'P',
       defaultValue: '3000',
@@ -670,7 +670,7 @@ describe('validateValue', () => {
       required: false,
       isCommentedOut: false,
       type: 'integer',
-      methods: { minimum: '1', maximum: '65535' },
+      constraints: { min: '1', max: '65535' },
     };
     expect(validateValue('8080', v)).toBeNull();
     expect(validateValue('0', v)).toMatch(/>= 1/);
@@ -685,7 +685,7 @@ describe('validateValue', () => {
       required: false,
       isCommentedOut: false,
       type: 'float',
-      methods: { precision: '2' },
+      constraints: { precision: '2' },
     };
     expect(validateValue('3.14', v)).toBeNull();
     expect(validateValue('3.141', v)).toMatch(/decimal places/);
@@ -763,7 +763,7 @@ describe('validateValue', () => {
     expect(validateValue('{not json}', v)).toMatch(/valid JSON/);
   });
 
-  it('validates string methods (minLength, maxLength, pattern)', () => {
+  it('validates string constraints (minLength, maxLength, pattern)', () => {
     const v: EnvVarSchema = {
       key: 'S',
       defaultValue: '',
@@ -771,7 +771,7 @@ describe('validateValue', () => {
       required: false,
       isCommentedOut: false,
       type: 'string',
-      methods: { minLength: '3', maxLength: '10', pattern: '^[a-z]+$' },
+      constraints: { minLength: '3', maxLength: '10', pattern: '^[a-z]+$' },
     };
     expect(validateValue('hello', v)).toBeNull();
     expect(validateValue('ab', v)).toMatch(/at least 3/);
@@ -927,7 +927,7 @@ describe('inferDescription', () => {
       key: 'PORT',
       defaultValue: '3000',
       comment:
-        'Server port [REQUIRED] [TYPE: integer] [METHODS: minimum=1,maximum=65535] Default: 3000',
+        'Server port [REQUIRED] [TYPE: integer] [CONSTRAINTS: min=1,max=65535] Default: 3000',
       required: true,
       isCommentedOut: false,
       type: 'integer',
