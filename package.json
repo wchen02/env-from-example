@@ -1,0 +1,41 @@
+{
+  "name": "env-from-example",
+  "version": "1.0.0",
+  "description": "Interactive and non-interactive CLI to set up .env from .env.example",
+  "type": "module",
+  "main": "dist/env-from-example.js",
+  "bin": {
+    "env-from-example": "dist/env-from-example.js"
+  },
+  "files": [
+    "dist",
+    "schema.json"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "pnpm run build",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "env",
+    "dotenv",
+    "cli",
+    "environment",
+    "setup"
+  ],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.30.0",
+  "dependencies": {
+    "@inquirer/prompts": "^5.4.0",
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.5",
+    "picocolors": "^1.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  }
+}
