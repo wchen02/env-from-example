@@ -221,7 +221,7 @@ During `env-from-example` (setup), the final value is resolved in this order:
 
 ## Interactive Polish (`--polish`)
 
-The `--polish` flag normalizes `.env.example` to follow the annotation convention. It dedupes keys, preserves section headers, and ensures every variable has a description, default documentation, and applicable type/constraints annotations.
+The `--polish` flag normalizes `.env.example` to follow the annotation convention. It dedupes keys, preserves section groups (banner format), and ensures every variable has a description, default documentation, and applicable type/constraints annotations.
 
 ### Interactive Mode (default)
 
@@ -279,4 +279,16 @@ Applies detection and normalization in one pass without prompts.
 | `VAR=value` | Default used if user doesn't change it |
 | `VAR=` | No default; user must enter (or CLI override) |
 | `# VAR=value` (commented-out) | Included in output with default; not prompted interactively |
-| Lines with `------` | Section header; copied as-is into the generated `.env` |
+| Section groups | Multi-line banner only (see below); variables with no group become **Other** when any group is used |
+
+### Section groups (banner only)
+
+Sections are defined only by the multi-line banner in `.env.example`:
+
+```
+# ========================================
+# Database
+# ========================================
+```
+
+Variables that appear after a banner belong to that group until the next banner. Variables before any banner or without a group are categorized as **Other** when at least one group is used, so polish does not treat them as a separate unnamed group.

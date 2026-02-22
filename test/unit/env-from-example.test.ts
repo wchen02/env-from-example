@@ -141,11 +141,13 @@ describe('parseEnvExample', () => {
     expect(apiBase.defaultValue).toBe('https://api.example.com/v1');
   });
 
-  it('preserves section headers in comment', () => {
+  it('preserves section group from banner', () => {
     const rootDir = path.join(FIXTURES_DIR, 'full');
     const { variables } = parseEnvExample(rootDir);
     const dbUrl = variables.find((v) => v.key === 'DATABASE_URL')!;
-    expect(dbUrl.comment).toMatch(/------/);
+    expect(dbUrl.group).toBeDefined();
+    expect(typeof dbUrl.group).toBe('string');
+    expect(dbUrl.group!.length).toBeGreaterThan(0);
   });
 });
 
@@ -212,9 +214,10 @@ describe('serializeEnvExample', () => {
       {
         key: 'FOO',
         defaultValue: 'bar',
-        comment: '# ------ Section ------\nDescription',
+        comment: 'Description',
         required: false,
         isCommentedOut: false,
+        group: 'Section',
       },
       {
         key: 'BAZ',

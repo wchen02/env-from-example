@@ -38,7 +38,7 @@ pnpm add -D env-from-example
 
 ## Setup
 
-Add a `.env.example` in your project root (or run `env-from-example --init` to create one). The CLI reads variable names, optional defaults, and comment annotations (`[REQUIRED]`, `[TYPE: ...]`, `[CONSTRAINTS: ...]`, `# ENV_SCHEMA_VERSION`). Section headers (lines containing `------`) are preserved in the generated `.env`.
+Add a `.env.example` in your project root (or run `env-from-example --init` to create one). The CLI reads variable names, optional defaults, and comment annotations (`[REQUIRED]`, `[TYPE: ...]`, `[CONSTRAINTS: ...]`, `# ENV_SCHEMA_VERSION`). Sections use a multi-line banner; variables without a group are listed under **Other** when any group is used (see [REFERENCE.md](REFERENCE.md)).
 
 **Sample `.env.example`**:
 
