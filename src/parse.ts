@@ -225,14 +225,20 @@ export function dedupeVariables(variables: EnvVarSchema[]): EnvVarSchema[] {
   });
 }
 
-const ENV_FROM_EXAMPLE_CREDIT =
-  "# env-from-example (https://www.npmjs.com/package/env-from-example)";
+const ENV_EXAMPLE_HEADER = [
+  "# ==============================================",
+  "# Environment Variables",
+  "# ==============================================",
+  "# env-from-example (https://www.npmjs.com/package/env-from-example)",
+  "# ==============================================",
+  "",
+];
 
 export function serializeEnvExample(
   version: string | null,
   variables: EnvVarSchema[]
 ): string {
-  const lines: string[] = [ENV_FROM_EXAMPLE_CREDIT, ""];
+  const lines: string[] = [...ENV_EXAMPLE_HEADER];
   if (version !== null && version !== undefined) {
     lines.push(`# ENV_SCHEMA_VERSION="${version}"`);
     lines.push("");

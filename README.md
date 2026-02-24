@@ -11,8 +11,12 @@ Walks you through each variable, validates types, auto-generates secrets, and pr
 npx env-from-example
 
 # Don't have a .env.example yet? Create one:
-npx env-from-example --init            # starter template
+npx env-from-example --init            # starter template, add env vars, then polish
 npx env-from-example --init .env       # from your existing .env
+
+# Don't have a .env? Generate one from .env.example
+npx env-from-example                   # Generate .env
+npx env-from-example -e staging        # Generate .env.staging
 ```
 
 ## Installation
@@ -25,53 +29,43 @@ pnpm add -g env-from-example
 pnpm add -D env-from-example
 ```
 
-**Recommended: add a setup script** to your `package.json` so new developers can run `pnpm setup:env`:
-
-```json
-{
-  "scripts": {
-    "setup:env": "env-from-example",
-    "setup:env:ci": "env-from-example -y"
-  }
-}
-```
-
 ## Setup
 
-Add a `.env.example` in your project root (or run `env-from-example --init` to create one). The CLI reads variable names, optional defaults, and comment annotations (`[REQUIRED]`, `[TYPE: ...]`, `[CONSTRAINTS: ...]`, `# ENV_SCHEMA_VERSION`). Sections use a multi-line banner; variables without a group are listed under **Other** when any group is used (see [REFERENCE.md](REFERENCE.md)).
+Add a `.env.example` in your project root (or run `env-from-example --init` to create one). 
+```bash
+npx env-from-example --init            # starter template
+npx env-from-example --init .env       # from your existing .env
+```
 
-**Sample `.env.example`**:
+### Before and after (first run)
+
+If you start with only a `.env.example` and no `.env` (or an empty one), running the tool fills in `.env` from your answers and defaults.
+
+**Before** — you have `.env.example` and no `.env` (or `.env` is empty):
 
 ```env
-# ENV_SCHEMA_VERSION="1.0"
-
-# ----- Database -----
-# Postgres connection URL [REQUIRED] [TYPE: network/uri]
+# .env.example (excerpt)
 DATABASE_URL=postgres://localhost:5432/myapp
-
-# Pool size [TYPE: integer] [CONSTRAINTS: min=1,max=100] Default: 10
-DATABASE_POOL_SIZE=10
-
-# ----- API -----
-# External API key [TYPE: credentials/secret]
 API_KEY=
-
-# Base URL [TYPE: network/https_url]
-API_BASE_URL=https://api.example.com/v1
-
-# ----- App -----
-# Node environment [TYPE: structured/enum] [CONSTRAINTS: pattern=^(development|staging|production)$]
 NODE_ENV=development
-
-# Session secret (auto-generates when empty) [TYPE: credentials/secret]
 SESSION_SECRET=
-
-# Optional feature flag
-# FEATURE_BETA=false
-
-# Optional port
-# PORT=3000
 ```
+
+```env
+# .env — missing or empty
+```
+
+**After** — run `env-from-example` (or `env-from-example -y` to accept defaults). The CLI prompts for required values, can auto-generate secrets (e.g. `SESSION_SECRET`), and writes:
+
+```env
+# .env — created/updated by env-from-example
+DATABASE_URL=postgres://localhost:5432/myapp
+API_KEY=your-api-key-here
+NODE_ENV=development
+SESSION_SECRET=a1b2c3d4e5f6...
+```
+
+Use `env-from-example -y --dry-run` to preview the result without writing files.
 
 ## Usage
 
@@ -150,7 +144,56 @@ VARIABLE_NAME=default_value
 
 All annotations are optional. The `--polish` command auto-detects and adds them.
 
-For the full list of supported types, constraints, enum syntax, auto-generation behavior, and the polish workflow, see [REFERENCE.md](REFERENCE.md).
+### Polish: before and after
+
+`env-from-example --polish` (or `--polish -y` for non-interactive) updates your `.env.example` with inferred descriptions, types, and default annotations.
+
+**Before** — minimal `.env.example`:
+
+```env
+DATABASE_URL=postgres://localhost:5432/myapp
+PORT=3000
+NODE_ENV=development
+API_KEY=
+```
+
+**After** — run `env-from-example --polish -y`:
+
+```env
+# env-from-example (https://www.npmjs.com/package/env-from-example)
+
+# ENV_SCHEMA_VERSION="1.0.0"
+
+# ========================================
+#                Database
+# ========================================
+
+# Database Url
+# [REQUIRED] [TYPE: network/uri] Default: postgres://localhost:5432/myapp
+DATABASE_URL=postgres://localhost:5432/myapp
+
+# ========================================
+#                  App
+# ========================================
+
+# Application port
+# [REQUIRED] [TYPE: integer] [CONSTRAINTS: min=3000,max=10000] Default: 3000
+PORT=3000
+
+# Node Env
+# [TYPE: structured/enum] [CONSTRAINTS: pattern=^(development|test|staging|production|ci)$] Default: development
+NODE_ENV=development
+
+# ========================================
+#                 Other
+# ========================================
+
+# OPEN AI API KEY
+# [REQUIRED] [TYPE: credentials/secret] Default: (empty)
+API_KEY=
+```
+
+Use `env-from-example --polish --dry-run` to preview changes without writing the file.
 
 ## CI / CD
 

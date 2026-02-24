@@ -268,6 +268,9 @@ async function run() {
         typeof options.init === "string" ? options.init : undefined;
       initEnvExample(ROOT_DIR, { from: source });
       console.log(pc.green(pc.bold("✅ .env.example created.")));
+      if (!source) {
+        return;
+      }
       if (options.yes) {
         polishEnvExample(ROOT_DIR);
         console.log(
