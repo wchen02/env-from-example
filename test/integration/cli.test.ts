@@ -5,7 +5,48 @@ import { spawnSync } from "child_process";
 
 const PROJECT_ROOT = path.resolve(__dirname, "../..");
 const FIXTURES_DIR = path.join(PROJECT_ROOT, "test", "fixtures");
-const CLI_PATH = path.join(PROJECT_ROOT, "dist", "env-from-example.ts");
+const FULL_FIXTURE_DIR = path.join(FIXTURES_DIR, "full");
+const FULL_FIXTURE_ENV_EXAMPLE = path.join(FULL_FIXTURE_DIR, ".env.example");
+const CLI_PATH = path.join(PROJECT_ROOT, "dist", "env-from-example.js");
+
+const FULL_FIXTURE_CONTENT = `# ==============================================
+# Environment Variables
+# ==============================================
+# env-from-example (https://www.npmjs.com/package/env-from-example)
+# ==============================================
+
+# ENV_SCHEMA_VERSION="1.0"
+
+# ------ Database ------
+# [REQUIRED] Postgres connection string
+DATABASE_URL=postgres://localhost:5432/myapp
+
+# Pool size (number); default is fine for dev
+DATABASE_POOL_SIZE=10
+
+# ------ API ------
+# Default: (empty)
+API_KEY=
+
+# Secret for signing; no default
+API_SECRET=
+
+# Base URL, can contain spaces or special chars when quoted
+API_BASE_URL=https://api.example.com/v1
+
+# ------ App ------
+# [TYPE: structured/enum]
+NODE_ENV=development
+
+# Session secret: auto-generated if left empty (64-byte base64)
+SESSION_SECRET=
+
+# Optional feature flag (commented out = included with default, not prompted)
+# FEATURE_BETA=false
+
+# Optional port; comment line = variable still in schema with default
+# PORT=3000
+`;
 
 function runCli(
   args: string[],
@@ -33,7 +74,13 @@ describe("CLI integration", () => {
     }
   });
 
+  beforeAll(() => {
+    fs.mkdirSync(FULL_FIXTURE_DIR, { recursive: true });
+    fs.writeFileSync(FULL_FIXTURE_ENV_EXAMPLE, FULL_FIXTURE_CONTENT, "utf-8");
+  });
+
   afterEach(() => {
+    fs.writeFileSync(FULL_FIXTURE_ENV_EXAMPLE, FULL_FIXTURE_CONTENT, "utf-8");
     const envFiles = [
       path.join(FIXTURES_DIR, "full", ".env"),
       path.join(FIXTURES_DIR, "full", ".env.test"),

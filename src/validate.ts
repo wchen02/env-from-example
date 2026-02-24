@@ -21,7 +21,27 @@ export function detectType(value: string, key: string): string | undefined {
   if (!trimmed) return undefined;
 
   const types = getSchemaTypes();
-  for (const t of types) {
+  const integerType = types.find((t) => t.name === "integer");
+  const floatType = types.find((t) => t.name === "float");
+  const booleanType = types.find((t) => t.name === "boolean");
+  const stringType = types.find((t) => t.name === "string");
+  const enumType = types.find((t) => t.name === "structured/enum");
+  const ordered = [
+    integerType,
+    floatType,
+    booleanType,
+    ...types.filter(
+      (t) =>
+        t.name !== "integer" &&
+        t.name !== "float" &&
+        t.name !== "boolean" &&
+        t.name !== "string" &&
+        t.name !== "structured/enum"
+    ),
+    stringType,
+    enumType,
+  ].filter(Boolean) as typeof types;
+  for (const t of ordered) {
     if (matchesSchemaType(t, trimmed, key)) return t.name;
   }
   return undefined;

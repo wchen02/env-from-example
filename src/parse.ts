@@ -21,20 +21,32 @@ function parseSchemaMeta(
     if (validNames.has(t)) out.type = t;
   }
 
-  const constraintsMatch = full.match(/\[CONSTRAINTS:\s*([^\]]+)\]/i);
-  if (constraintsMatch) {
-    const raw = constraintsMatch[1].trim();
+  const parseConstraints = (raw: string): Record<string, string> => {
     const constraints: Record<string, string> = {};
     const pairs = raw.split(/,(?=[a-zA-Z_]+=)/);
     for (const pair of pairs) {
       const eqIdx = pair.indexOf("=");
       if (eqIdx > 0) {
-        constraints[pair.substring(0, eqIdx).trim()] = pair
-          .substring(eqIdx + 1)
-          .trim();
+        let k = pair.substring(0, eqIdx).trim();
+        const v = pair.substring(eqIdx + 1).trim();
+        if (k === "minimum") k = "min";
+        if (k === "maximum") k = "max";
+        constraints[k] = v;
       }
     }
-    if (Object.keys(constraints).length > 0) out.constraints = constraints;
+    return constraints;
+  };
+
+  const constraintsMatch = full.match(/\[CONSTRAINTS:\s*([^\]]+)\]/i);
+  if (constraintsMatch) {
+    const c = parseConstraints(constraintsMatch[1].trim());
+    if (Object.keys(c).length > 0) out.constraints = c;
+  }
+  const methodsMatch = full.match(/\[METHODS:\s*([^\]]+)\]/i);
+  if (methodsMatch) {
+    const c = parseConstraints(methodsMatch[1].trim());
+    if (Object.keys(c).length > 0)
+      out.constraints = { ...out.constraints, ...c };
   }
 
   return out;
@@ -51,7 +63,8 @@ export function parseEnvExample(rootDir: string): {
     throw new Error(`.env.example not found at ${envExamplePath}`);
   }
 
-  const content = fs.readFileSync(envExamplePath, "utf-8");
+  const raw = fs.readFileSync(envExamplePath, "utf-8");
+  const content = raw.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   const lines = content.split("\n");
   const variables: EnvVarSchema[] = [];
   let currentComments: string[] = [];
@@ -59,22 +72,30 @@ export function parseEnvExample(rootDir: string): {
   let version = null;
   let inBannerBlock = false;
   let bannerGroupName = "";
+  let bannerEverClosed = false;
 
   const buildComment = (comments: string[]): string => comments.join("\n");
 
   for (const line of lines) {
     const trimmed = line.trim();
 
+    if (trimmed.startsWith("# ENV_SCHEMA_VERSION=")) {
+      const match = trimmed.match(/# ENV_SCHEMA_VERSION="?([^"]+)"?/);
+      if (match) version = match[1];
+      continue;
+    }
+
     if (/^#\s*={5,}\s*$/.test(trimmed)) {
-      if (!inBannerBlock) {
+      if (!inBannerBlock && !bannerEverClosed) {
         inBannerBlock = true;
         bannerGroupName = "";
-      } else {
+      } else if (inBannerBlock) {
         if (bannerGroupName) {
           currentGroup = bannerGroupName;
         }
         currentComments = [];
         inBannerBlock = false;
+        bannerEverClosed = true;
       }
       continue;
     }
@@ -84,14 +105,17 @@ export function parseEnvExample(rootDir: string): {
       continue;
     }
 
-    if (trimmed.startsWith("# ENV_SCHEMA_VERSION=")) {
-      const match = trimmed.match(/# ENV_SCHEMA_VERSION="?([^"]+)"?/);
-      if (match) version = match[1];
+    const sectionDashesMatch = trimmed.match(/^#\s*-+\s*(.+?)\s*-+\s*$/);
+    if (sectionDashesMatch) {
+      currentGroup = sectionDashesMatch[1].trim();
+      currentComments = [];
       continue;
     }
 
     if (trimmed.startsWith("#")) {
-      const maybeVarMatch = trimmed.match(/^#\s*([A-Z0-9_]+)=(.*)$/);
+      const maybeVarMatch = !trimmed.startsWith("# ENV_SCHEMA_VERSION=")
+        ? trimmed.match(/^#\s*([A-Z0-9_]+)=(.*)$/)
+        : null;
       if (maybeVarMatch) {
         let val = maybeVarMatch[2].trim();
         val = val.split(" #")[0].trim();

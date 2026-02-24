@@ -31,7 +31,8 @@ pnpm add -D env-from-example
 
 ## Setup
 
-Add a `.env.example` in your project root (or run `env-from-example --init` to create one). 
+Add a `.env.example` in your project root (or run `env-from-example --init` to create one).
+
 ```bash
 npx env-from-example --init            # starter template
 npx env-from-example --init .env       # from your existing .env
