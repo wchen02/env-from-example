@@ -1,11 +1,31 @@
 {
-  "name": "env-from-example",
+  "name": "@wchen.ai/env-from-example",
   "version": "1.0.0",
   "description": "Interactive and non-interactive CLI to set up .env from .env.example",
+  "keywords": [
+    "env",
+    "dotenv",
+    "cli",
+    "environment",
+    "setup"
+  ],
+  "homepage": "https://github.com/wchen02/env-from-example#readme",
+  "bugs": {
+    "url": "https://github.com/wchen02/env-from-example/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wchen02/env-from-example.git"
+  },
+  "license": "ISC",
+  "author": "Wensheng Chen",
   "type": "module",
   "main": "dist/env-from-example.js",
   "bin": {
     "env-from-example": "dist/env-from-example.js"
+  },
+  "directories": {
+    "test": "test"
   },
   "files": [
     "dist",
@@ -24,16 +44,6 @@
     "typecheck": "tsc -p tsconfig.typecheck.json",
     "code-quality": "pnpm run lint && pnpm run format:check && pnpm run typecheck"
   },
-  "keywords": [
-    "env",
-    "dotenv",
-    "cli",
-    "environment",
-    "setup"
-  ],
-  "author": "",
-  "license": "ISC",
-  "packageManager": "pnpm@10.30.0",
   "dependencies": {
     "@inquirer/prompts": "^5.4.0",
     "commander": "^12.1.0",
@@ -50,5 +60,6 @@
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.15.0",
     "vitest": "^2.1.0"
-  }
+  },
+  "packageManager": "pnpm@10.30.0"
 }
