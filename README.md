@@ -7,7 +7,10 @@ Walks you through each variable, validates types, auto-generates secrets, and pr
 ## Quick Start
 
 ```bash
-# Run without installing
+# Run without installing (npx fetches and runs)
+npx @wchen.ai/env-from-example
+
+# After installing in your project, use the short form:
 npx env-from-example
 
 # Don't have a .env.example yet? Create one:
@@ -21,13 +24,18 @@ npx env-from-example -e staging        # Generate .env.staging
 
 ## Installation
 
+Install in your project so you can run `npx env-from-example` from the project root:
+
 ```bash
-npm install -g env-from-example
+npm install @wchen.ai/env-from-example
 # or
-pnpm add -g env-from-example
-# or as a dev dependency
-pnpm add -D env-from-example
+pnpm add @wchen.ai/env-from-example
+# or as a dev dependency (recommended for CLI tools)
+npm install -D @wchen.ai/env-from-example
+pnpm add -D @wchen.ai/env-from-example
 ```
+
+Then run from your project root: **`npx env-from-example`** (or add it to your `package.json` scripts).
 
 ## Setup
 
@@ -161,7 +169,7 @@ API_KEY=
 **After** — run `env-from-example --polish -y`:
 
 ```env
-# env-from-example (https://www.npmjs.com/package/env-from-example)
+# env-from-example (https://www.npmjs.com/package/@wchen.ai/env-from-example)
 
 # ENV_SCHEMA_VERSION="1.0.0"
 
