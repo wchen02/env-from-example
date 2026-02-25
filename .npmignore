@@ -1,2 +1,31 @@
-test
-vitest.config.js
+# Source and build inputs (only dist/ is published via package.json "files")
+src/
+*.ts
+!dist/**/*.js
+env-from-example.ts
+tsconfig*.json
+
+# Tests and fixtures
+test/
+vitest.config.*
+*.test.ts
+*.spec.ts
+
+# Tooling and config
+eslint*
+.prettier*
+.editorconfig
+.cursor/
+.github/
+
+# Env and secrets (never publish)
+.env
+.env.*
+
+# Lockfiles (optional; omit to keep package small)
+# package-lock.json
+# pnpm-lock.yaml
+# yarn.lock
+
+# Docs that are repo-only (README is published by default)
+REFERENCE.md
