@@ -699,6 +699,21 @@ describe("validateValue", () => {
     expect(validateValue("verbose", v)).toMatch(/one of/);
   });
 
+  it("validates NODE_ENV implicit enum when type is structured/enum without pattern", () => {
+    const v: EnvVarSchema = {
+      key: "NODE_ENV",
+      defaultValue: "development",
+      comment: "",
+      required: false,
+      isCommentedOut: false,
+      type: "structured/enum",
+    };
+    expect(validateValue("development", v)).toBeNull();
+    expect(validateValue("production", v)).toBeNull();
+    expect(validateValue("test", v)).toBeNull();
+    expect(validateValue("aa", v)).toMatch(/must be one of: development, production, test/);
+  });
+
   it("validates integer type", () => {
     const v: EnvVarSchema = {
       key: "N",

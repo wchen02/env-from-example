@@ -163,6 +163,75 @@ describe("CLI integration", () => {
     expect(content).toMatch(/DATABASE_URL=postgres:\/\/custom:5432\/db/);
   });
 
+  describe("non-interactive (-y) validates CLI overrides", () => {
+    it("exits 1 and does not write .env when --node-env is invalid", () => {
+      const fixtureDir = path.join(FIXTURES_DIR, "full");
+      const envPath = path.join(fixtureDir, ".env");
+      const result = runCli(
+        ["-y", "--cwd", fixtureDir, "--node-env", "aa"],
+        PROJECT_ROOT
+      );
+      expect(result.status).toBe(1);
+      expect(result.stderr).toMatch(/Error:/);
+      expect(result.stderr).toMatch(/NODE_ENV must be one of: development, production, test/);
+      if (fs.existsSync(envPath)) {
+        const content = fs.readFileSync(envPath, "utf-8");
+        expect(content).not.toMatch(/NODE_ENV=aa/);
+      }
+    });
+
+    it("exits 1 and does not write .env when --port is invalid (non-integer)", () => {
+      const fixtureDir = path.join(FIXTURES_DIR, "full");
+      const envPath = path.join(fixtureDir, ".env");
+      const result = runCli(
+        ["-y", "--cwd", fixtureDir, "--port", "11aa"],
+        PROJECT_ROOT
+      );
+      expect(result.status).toBe(1);
+      expect(result.stderr).toMatch(/Error:/);
+      expect(result.stderr).toMatch(/PORT must be an integer/);
+      if (fs.existsSync(envPath)) {
+        const content = fs.readFileSync(envPath, "utf-8");
+        expect(content).not.toMatch(/PORT=11aa/);
+      }
+    });
+
+    it("exits 1 when both --node-env and --port are invalid (reports first error)", () => {
+      const fixtureDir = path.join(FIXTURES_DIR, "full");
+      const result = runCli(
+        ["-y", "--cwd", fixtureDir, "--node-env", "aa", "--port", "11aa"],
+        PROJECT_ROOT
+      );
+      expect(result.status).toBe(1);
+      expect(result.stderr).toMatch(/Error:/);
+      expect(
+        result.stderr.includes("NODE_ENV must be one of") ||
+          result.stderr.includes("PORT must be an integer")
+      ).toBe(true);
+    });
+
+    it("succeeds and writes .env when CLI overrides are valid", () => {
+      const fixtureDir = path.join(FIXTURES_DIR, "full");
+      const result = runCli(
+        [
+          "-y",
+          "--cwd",
+          fixtureDir,
+          "--node-env",
+          "production",
+          "--port",
+          "8080",
+        ],
+        PROJECT_ROOT
+      );
+      expect(result.status).toBe(0);
+      expect(result.stdout).toMatch(/successfully created\/updated/);
+      const content = fs.readFileSync(path.join(fixtureDir, ".env"), "utf-8");
+      expect(content).toMatch(/NODE_ENV=production/);
+      expect(content).toMatch(/PORT=8080/);
+    });
+  });
+
   it("minimal fixture: creates .env with version and vars", () => {
     const fixtureDir = path.join(FIXTURES_DIR, "minimal");
     const result = runCli(["-y", "--cwd", fixtureDir], PROJECT_ROOT);
