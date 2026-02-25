@@ -109,17 +109,22 @@ export function validateValue(value: string, v: EnvVarSchema): string | null {
   const st = findSchemaType(v.type);
   if (!st) return null;
 
-  if (v.type === "structured/enum" && v.constraints?.pattern) {
-    try {
-      if (!new RegExp(v.constraints.pattern).test(trimmed)) {
-        const choices = parseEnumChoices(v.constraints.pattern);
-        if (choices.length > 0) {
-          return `${v.key} must be one of: ${choices.join(", ")}`;
+  if (v.type === "structured/enum") {
+    const pattern =
+      v.constraints?.pattern ??
+      (v.key === "NODE_ENV" ? "^(development|production|test)$" : undefined);
+    if (pattern) {
+      try {
+        if (!new RegExp(pattern).test(trimmed)) {
+          const choices = parseEnumChoices(pattern);
+          if (choices.length > 0) {
+            return `${v.key} must be one of: ${choices.join(", ")}`;
+          }
+          return `${v.key} must match pattern ${pattern}`;
         }
-        return `${v.key} must match pattern ${v.constraints.pattern}`;
+      } catch {
+        return `${v.key} has an invalid enum pattern: ${pattern}`;
       }
-    } catch {
-      return `${v.key} has an invalid enum pattern: ${v.constraints.pattern}`;
     }
     return null;
   }

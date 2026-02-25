@@ -25,6 +25,7 @@ import {
   validateEnv,
   coerceToType,
   generateAutoValue,
+  detectType,
 } from "./src/validate.js";
 import { polishEnvExample, polishEnvExampleInteractive } from "./src/polish.js";
 import { bumpSemver, updateEnvSchemaVersion } from "./src/version.js";
@@ -484,7 +485,20 @@ async function run() {
       valFromCli !== null &&
       typeof valFromCli === "string"
     ) {
-      finalValues[v.key] = valFromCli;
+      let err = validateValue(valFromCli, v);
+      let inferredType: string | undefined;
+      if (!err && !v.type && (v.defaultValue || v.key)) {
+        inferredType = detectType(v.defaultValue || "", v.key);
+        if (inferredType) {
+          err = validateValue(valFromCli, { ...v, type: inferredType });
+        }
+      }
+      if (err) {
+        console.error(pc.red("Error:"), err);
+        process.exit(1);
+      }
+      const coerced = coerceToType(valFromCli, v.type ?? inferredType);
+      finalValues[v.key] = coerced;
       summary.fromCli.push(v.key);
       continue;
     }
