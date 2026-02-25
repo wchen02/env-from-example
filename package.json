@@ -32,7 +32,7 @@
     "schema.json"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "prepublishOnly": "pnpm run build",
     "start": "node dist/env-from-example.js",
     "dev": "tsx env-from-example.ts",
