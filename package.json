@@ -21,7 +21,9 @@
   "author": "Wensheng Chen",
   "type": "module",
   "main": "dist/env-from-example.js",
-  "bin": "dist/env-from-example.js",
+  "bin": {
+    "env-from-example": "dist/env-from-example.js"
+  },
   "directories": {
     "test": "test"
   },
