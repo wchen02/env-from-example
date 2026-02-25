@@ -587,8 +587,10 @@ async function run() {
 // ─── Entry ───────────────────────────────────────────────────────────────────
 
 const __filename = fileURLToPath(import.meta.url);
-const isMain =
-  process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename);
+const resolvedArgv = process.argv[1]
+  ? fs.realpathSync(path.resolve(process.argv[1]))
+  : "";
+const isMain = resolvedArgv === fs.realpathSync(path.resolve(__filename));
 if (isMain) {
   run().catch((err) => {
     if (
